@@ -45,6 +45,8 @@ auto main(
         return EXIT_FAILURE;
     }
 
+    cpp1_libraries = flag_cpp1_libraries;
+
     //  For each Cpp2 source file
     int exit_status = EXIT_SUCCESS;
     for (auto const& arg : cmdline.arguments())

@@ -33,7 +33,7 @@ auto parser::apply_type_metafunctions( declaration_node& n )
     auto rtype = meta::type_declaration{ &n, cs };
 
     return apply_metafunctions(
-        n, 
+        n,
         rtype,
         [&](std::string const& msg) { error( msg, false ); }
     );
@@ -1741,7 +1741,7 @@ public:
             //  Skip type scope (member) variables
             && !(n.parent_is_type() && n.is_object())
             //  Skip unnamed variables
-            && n.identifier 
+            && n.identifier
             //  Skip non-out parameters
             && (
                 !inside_parameter_list

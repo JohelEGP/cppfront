@@ -16,6 +16,10 @@
 //===========================================================================
 
 #include "parse.h"
+#if defined(CPPFRONT_PROGRAM_DEFINED_METAFUNCTIONS)
+#include <boost/dll/shared_library.hpp>
+#endif
+
 
 cpp2: namespace = {
 
@@ -396,7 +400,7 @@ function_declaration: @copyable type =
         pre<this> (!has_initializer(), "cannot add an initializer to a function that already has one")
         pre<this> (parent_is_type(),   "cannot add an initializer to a function that isn't in a type scope")
     = {
-        //require( !has_initializer(), 
+        //require( !has_initializer(),
         //         "cannot add an initializer to a function that already has one");
         //require( parent_is_type(),
         //         "cannot add an initializer to a function that isn't in a type scope");
@@ -485,7 +489,7 @@ type_declaration: @copyable type =
         -> std::vector<function_declaration>
     = {
         ret: std::vector<function_declaration> = ();
-        for n*.get_type_scope_declarations(declaration_node::functions) 
+        for n*.get_type_scope_declarations(declaration_node::functions)
         do  (d) {
             _ = ret.emplace_back( d, this );
         }
@@ -1258,8 +1262,8 @@ union: (inout t : meta::type_declaration)
         storage += "), cpp2::max( ";
 
         (copy comma: std::string = "")
-        for  alternatives  
-        next comma = ", "  
+        for  alternatives
+        next comma = ", "
         do   (e) {
             storage += comma + "alignof((e.type)$)";
         }
@@ -1336,6 +1340,46 @@ print: (t: meta::type_declaration) =
 {
     std::cout << t.print() << "\n";
 }
+
+
+}
+
+}
+
+namespace cpp2::meta {
+
+//-----------------------------------------------------------------------
+//
+//  load_metafunction - load a program-defined metafunction in a library
+//
+
+#if defined(CPPFRONT_PROGRAM_DEFINED_METAFUNCTIONS)
+struct loaded_metafunction : std::optional<void(*)(type_declaration&)> {
+    std::any library = {};
+};
+
+auto load_metafunction(std::string const& name) -> loaded_metafunction {
+    auto cpp1_name = "cpp2_metafunction_" + name;
+    for (auto&& lib_path: cpp1_libraries) {
+        auto lib = boost::dll::shared_library(lib_path, boost::dll::load_mode::append_decorations);
+        if (lib.has(cpp1_name)) {
+            auto res = lib.get_alias<void(type_declaration&)>(cpp1_name);
+            return {res, std::move(lib)};
+        }
+    }
+    return {};
+}
+#else
+auto load_metafunction(std::string const&) -> std::optional<void(*)(type_declaration&)> {
+    return {};
+}
+#endif
+
+}
+
+cpp2: namespace = {
+
+meta: namespace = {
 
 
 //-----------------------------------------------------------------------
@@ -1423,9 +1467,14 @@ apply_metafunctions: (
             print( rtype );
         }
         else {
-            error( "unrecognized metafunction name: " + name );
-            error( "(temporary alpha limitation) currently the supported names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print" );
-            return false;
+            (metafunction := load_metafunction(name))
+            if metafunction {
+                (metafunction*)( rtype );
+            } else {
+                error( "unrecognized metafunction name: " + name );
+                error( "(temporary alpha limitation) currently the supported names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print" );
+                return false;
+            }
         }
 
         if (

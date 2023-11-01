@@ -136,6 +136,15 @@ static cmdline_processor::register_flag cmd_cpp1_filename(
     [](std::string const& name) { flag_cpp1_filename = name; }
 );
 
+static auto flag_cpp1_libraries = std::vector<std::string>{};
+static cmdline_processor::register_flag cmd_cpp1_libraries(
+    9,
+    "input library",
+    "library with metafunctions - loaded during metafunction application",
+    nullptr,
+    [](std::string const& name) { flag_cpp1_libraries.push_back(name); }
+);
+
 static auto flag_print_colon_errors = false;
 static cmdline_processor::register_flag cmd_print_colon_errors(
     9,
@@ -6440,6 +6449,20 @@ public:
                 printer.preempt_position_pop();
 
                 function_returns.pop_back();
+
+                if (
+                    n.is_metafunction()
+                    && printer.get_phase() == positional_printer::phase2_func_defs
+                    ) {
+                    auto identifier = print_to_string(*n.identifier);
+                    printer.print_extra(
+                        "\nextern \"C\" constexpr auto cpp2_metafunction_"
+                        + identifier
+                        + " = &"
+                        + identifier
+                        + ";"
+                    );
+                }
             }
 
             //  Finally, do the potential recursions...

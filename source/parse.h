@@ -2261,6 +2261,9 @@ struct function_type_node
     auto is_destructor() const
         -> bool;
 
+    auto is_metafunction() const
+        -> bool;
+
     auto has_declared_return_type() const
         -> bool
     {
@@ -3481,6 +3484,16 @@ public:
         return "";
     }
 
+    auto is_metafunction() const
+        -> bool
+    {
+        if (auto func = std::get_if<a_function>(&type)) {
+            return (*func)->is_metafunction();
+        }
+        //  else
+        return false;
+    }
+
     auto is_binary_comparison_function() const
         -> bool
     {
@@ -3934,6 +3947,21 @@ auto function_type_node::is_destructor() const
         && (*parameters).ssize() == 1
         && (*parameters)[0]->has_name("this")
         && (*parameters)[0]->direction() == passing_style::move
+        )
+    {
+        return true;
+    }
+    return false;
+}
+
+
+auto function_type_node::is_metafunction() const
+    -> bool
+{
+    if (
+        (*parameters).ssize() == 1
+        && this->nth_parameter_type_name(1) == "cpp2::meta::type_declaration"
+        && (*parameters)[0]->direction() == passing_style::inout
         )
     {
         return true;
@@ -5121,6 +5149,8 @@ auto pretty_print_visualize(translation_unit_node const& n)
     return ret;
 }
 
+
+std::span<const std::string> cpp1_libraries = {};
 
 //-----------------------------------------------------------------------
 //
