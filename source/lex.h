@@ -375,7 +375,7 @@ auto expand_string_literal(
     ++pos;
     auto current_start = pos;   // the current offset before which the string has been added to ret
 
-    auto parts = string_parts{std::string(text.substr(0, current_start)), // begin sequence ", U", u8" depends on the string type 
+    auto parts = string_parts{std::string(text.substr(0, current_start)), // begin sequence ", U", u8" depends on the string type
                               "\"", // end sequence
                               string_parts::on_both_ends}; // add opening and closing sequence to generated string
 
@@ -575,11 +575,11 @@ auto expand_raw_string_literal(
 //  A stable place to store additional text for source tokens that are merged
 //  into a whitespace-containing token (to merge the Cpp1 multi-token keywords)
 //  -- this isn't about tokens generated later, that's tokens::generated_tokens
-static auto generated_text  = std::deque<std::string>{};
-static auto generated_lines = std::deque<std::vector<source_line>>{};
+inline auto generated_text  = std::deque<std::string>{};
+inline auto generated_lines = std::deque<std::vector<source_line>>{};
 
 
-static auto multiline_raw_strings = std::deque<multiline_raw_string>{};
+inline auto multiline_raw_strings = std::deque<multiline_raw_string>{};
 
 auto lex_line(
     std::string&               mutable_line,
@@ -1059,8 +1059,8 @@ auto lex_line(
         const std::string& opening_seq,
         const std::string& closing_seq,
         string_parts::adds_sequences closing_strategy,
-        std::string_view part, 
-        int pos_to_replace, 
+        std::string_view part,
+        int pos_to_replace,
         int size_to_replace
     ) -> bool {
         auto parts = expand_raw_string_literal(opening_seq, closing_seq, closing_strategy, part, errors, source_position(lineno, pos_to_replace + 1));
@@ -1094,7 +1094,7 @@ auto lex_line(
         auto peek3 = peek(3);
 
         //G encoding-prefix: one of
-        //G     'u8' 'u' 'uR' 'u8R' 'U' 'UR' 'L' 'LR' 'R' 
+        //G     'u8' 'u' 'uR' 'u8R' 'U' 'UR' 'L' 'LR' 'R'
         //G
         auto is_encoding_prefix_and = [&](char next) {
             if (line[i] == next)                                        { return 1; } // "
@@ -1103,15 +1103,15 @@ auto lex_line(
                 else if (peek1 == '8' && peek2 == next)                 { return 3; } // u8"
                 else if (peek1 == 'R' && peek2 == next)                 { return 3; } // uR"
                 else if (peek1 == '8' && peek2 == 'R' && peek3 == next) { return 4; } // u8R"
-            } 
-            else if (line[i] == 'U') { 
+            }
+            else if (line[i] == 'U') {
                 if ( peek1 == next)                                     { return 2; } // U"
                 else if (peek1 == 'R' && peek2 == next)                 { return 3; } // UR"
-            } 
-            else if (line[i] == 'L') { 
+            }
+            else if (line[i] == 'L') {
                 if ( peek1 == next )                                    { return 2; } // L"
-                else if (peek1 == 'R' && peek2 == next)                 { return 3; } // LR" 
-            } 
+                else if (peek1 == 'R' && peek2 == next)                 { return 3; } // LR"
+            }
             else if (line[i] == 'R' && peek1 == next)                   { return 2; } // R"
             return 0;
         };
@@ -1143,7 +1143,7 @@ auto lex_line(
             auto part = line.substr(i, end_pos-i);
 
             if (const auto& rsm = raw_string_multiline.value(); rsm.should_interpolate) {
-                
+
                 auto closing_strategy = end_pos == line.npos ? string_parts::no_ends : string_parts::on_the_end;
                 auto size_to_replace  = end_pos == line.npos ? std::ssize(line) - i  : end_pos - i + std::ssize(rsm.closing_seq);
 
@@ -1369,7 +1369,7 @@ auto lex_line(
                     // if peek(j-2) is 'R' it means that we deal with raw-string literal
                     auto R_pos = i + 1;
                     auto seq_pos = i + 3;
-                        
+
                     if (auto paren_pos = line.find("(", seq_pos); paren_pos != std::string::npos) {
                         auto opening_seq = line.substr(i, paren_pos - i + 1);
                         auto closing_seq = ")"+line.substr(seq_pos, paren_pos-seq_pos)+"\"";
@@ -1582,9 +1582,9 @@ auto lex_line(
                 //G
                 else if (auto j = is_encoding_prefix_and('\"')) {
                     // if peek(j-2) is 'R' it means that we deal with raw-string literal
-                    if (peek(j-2) == 'R') { 
+                    if (peek(j-2) == 'R') {
                         auto seq_pos = i + j;
-                            
+
                         if (auto paren_pos = line.find("(", seq_pos); paren_pos != std::string::npos) {
                             auto opening_seq = line.substr(i, paren_pos - i + 1);
                             auto closing_seq = ")"+line.substr(seq_pos, paren_pos-seq_pos)+"\"";
@@ -1982,7 +1982,7 @@ public:
 
 };
 
-static auto generated_lexers = std::deque<tokens>{};
+inline auto generated_lexers = std::deque<tokens>{};
 
 }
 

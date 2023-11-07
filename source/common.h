@@ -30,11 +30,14 @@
 #include <vector>
 #include <cstdint>
 #include <cctype>
-#include <cassert>
 #include <iomanip>
 #include <compare>
 #include <algorithm>
 #include <unordered_map>
+
+#ifndef CPP2_MODULE
+#include <cassert>
+#endif
 
 namespace cpp2 {
 
@@ -127,7 +130,7 @@ struct string_parts {
 
     string_parts(const std::string& beginseq,
                  const std::string& endseq,
-                 adds_sequences     strateg) 
+                 adds_sequences     strateg)
      : begin_seq{beginseq}
      , end_seq{endseq}
      , strategy{strateg}
@@ -144,16 +147,16 @@ struct string_parts {
     void clear() { parts.clear(); }
 
     auto generate() const -> std::string {
-        
-        if (parts.empty()) { 
-            return (strategy & on_the_beginning ? begin_seq : std::string{}) 
-                 + (strategy & on_the_end ? end_seq : std::string{}); 
+
+        if (parts.empty()) {
+            return (strategy & on_the_beginning ? begin_seq : std::string{})
+                 + (strategy & on_the_end ? end_seq : std::string{});
         }
 
-        auto result = std::visit(begin_visit{begin_seq, strategy}, 
+        auto result = std::visit(begin_visit{begin_seq, strategy},
                                  parts.front());
 
-        if (std::ssize(parts) > 1) { 
+        if (std::ssize(parts) > 1) {
             auto it1 = parts.cbegin();
             auto it2 = parts.cbegin()+1;
             for(;it2 != parts.cend(); ++it1, ++it2) {
@@ -848,7 +851,7 @@ cmdline_processor::register_flag::register_flag(
     cmdline.add_flag( group, name, description, handler0, handler1, synonym, opt_out );
 }
 
-static cmdline_processor::register_flag cmd_help   (
+inline cmdline_processor::register_flag cmd_help   (
     0,
     "help",
     "Print help",
@@ -857,14 +860,14 @@ static cmdline_processor::register_flag cmd_help   (
     "?"
 );
 
-static cmdline_processor::register_flag cmd_version(
+inline cmdline_processor::register_flag cmd_version(
     0,
     "version",
     "Print version information",
     []{ cmdline.print_version(); }
 );
 
-static cmdline_processor::register_flag cmd_gen_version(
+inline cmdline_processor::register_flag cmd_gen_version(
     0,
     "_gen_version",
     "Generate version information",

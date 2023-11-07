@@ -4322,8 +4322,8 @@ auto pretty_print_visualize(declaration_node const& n, int indent, bool include_
 //-----------------------------------------------------------------------
 //  pre: Get an indentation prefix
 //
-inline static int         indent_spaces  = 2;
-inline static std::string indent_str     = std::string( 1024, ' ' );    // "1K should be enough for everyone"
+inline int         indent_spaces  = 2;
+inline std::string indent_str     = std::string( 1024, ' ' );    // "1K should be enough for everyone"
 
 auto pre(int indent)
     -> std::string_view
