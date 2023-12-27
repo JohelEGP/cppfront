@@ -25,7 +25,9 @@ public:
 #else
         handle_ = static_cast<void*>(dlopen(path.c_str(), RTLD_NOW|RTLD_LOCAL));
 #endif // _WIN32
-        // TODO: log if the dll could not be open?
+        // TODO(Herb/Johel): Decide a user-friendlier way of reporting this.
+        if(handle_ == nullptr)
+            std::cerr << "Error while loading DLL '" << path << "': " << get_last_error_() << '\n';
     }
 
     ~dll() noexcept
@@ -63,16 +65,41 @@ public:
             symbol = dlsym(handle_, us_name.c_str());
         }
 #endif // _WIN32
-        // TODO: log if the symbol is not found?
-        return function_cast<T*>(symbol);
+        // TODO(Herb/Johel): Decide a user-friendlier way of reporting this.
+        if(symbol == nullptr)
+            std::cerr << "Error while looking up DLL symbol '" << name << "': " << get_last_error_() << '\n';
+        return function_cast_<T*>(symbol);
     }
 private:
     void* handle_{nullptr};
 
     template<typename T>
-    static T function_cast(auto ptr) {
+    static auto function_cast_(auto ptr) noexcept -> T {
         using generic_function_ptr = void (*)(void);
         return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
+    }
+
+    static auto get_last_error_() noexcept -> std::string {
+#ifdef _WIN32
+        DWORD errorMessageID = GetLastError();
+        if(errorMessageID == 0)
+            return {}; // No error message has been recorded
+        LPSTR messageBuffer = nullptr;
+        auto size = FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            errorMessageID,
+            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+            &messageBuffer,
+            0,
+            nullptr
+        );
+        std::string message(messageBuffer, static_cast<size_t>(size));
+        LocalFree(messageBuffer);
+        return message;
+#else
+        return std::string{dlerror()};
+#endif // _WIN32
     }
 
 };
