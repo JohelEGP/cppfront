@@ -283,6 +283,15 @@
 #endif
 
 
+#if defined(_WIN32)
+#define CPPFRONTAPI __declspec(dllexport)
+#else
+#define CPPFRONTAPI  __attribute__ ((visibility ("default")))
+#endif
+
+#define CPP2_C_API extern "C" CPPFRONTAPI
+
+
 namespace cpp2 {
 
 

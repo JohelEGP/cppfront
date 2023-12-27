@@ -6448,11 +6448,12 @@ public:
                 {
                     auto identifier = print_to_string(*n.identifier);
                     printer.print_extra(
-                        "\nextern \"C\" constexpr auto cpp2_metafunction_"
+                        "\nCPP2_C_API void cpp2_metafunction_"
                         + identifier
-                        + " = &"
+                        + "(void* t) { "
                         + identifier
-                        + ";"
+                        + "(*static_cast<cpp2::meta::type_declaration*>(t));"
+                        + " }"
                     );
                 }
             }

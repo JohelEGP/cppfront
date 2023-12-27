@@ -44,11 +44,7 @@ class compiler_services_data;
 //  Reflection and meta
 //===========================================================================
 
-#ifndef CPPFRONT_LOAD_METAFUNCTION_IMPL_HEADER
-#define CPPFRONT_LOAD_METAFUNCTION_IMPL_HEADER "reflect_load_metafunction_never.h"
-#endif
-
-#include CPPFRONT_LOAD_METAFUNCTION_IMPL_HEADER
+#include "reflect_load_metafunction.h"
 
 #include "parse.h"
 
