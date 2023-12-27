@@ -36,7 +36,7 @@ meta: namespace = {
 //-----------------------------------------------------------------------
 //
 
-compiler_services_data: @polymorphic_base @copyable type =
+compiler_services_data: @struct type =
 {
     //  Common data members
     //
@@ -48,18 +48,18 @@ compiler_services_data: @polymorphic_base @copyable type =
     public metafunction_args    : std::vector<std::string> = ();
     public metafunctions_used   : bool = false;
 
-    //  Constructor
+    //  Make function
     //
-    operator=: (
-        out this,
+    make: (
         errors_          : *std::vector<error_entry>,
         generated_tokens_: *std::deque<token>
     )
+        -> compiler_services_data
     = {
-        errors = errors_;
-        errors_original_size = cpp2::unsafe_narrow<int>(std::ssize(errors*));
-        generated_tokens = generated_tokens_;
-        parser = errors*;
+        return (errors_,
+                cpp2::unsafe_narrow<int>(std::ssize(errors_*)),
+                generated_tokens_,
+                errors_*);
     }
 }
 

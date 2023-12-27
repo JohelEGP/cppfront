@@ -77,16 +77,12 @@ class compiler_services_data
     public: std::vector<std::string> metafunction_args {}; 
     public: bool metafunctions_used {false}; 
 
-    //  Constructor
+    //  Make function
     //
-    public: explicit compiler_services_data(
-
+    public: [[nodiscard]] static auto make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
-    );
-    public: virtual ~compiler_services_data() noexcept;
-public: compiler_services_data(compiler_services_data const& that);
-
+    ) -> compiler_services_data;
 
 #line 64 "reflect.h2"
 };
@@ -120,30 +116,17 @@ namespace cpp2 {
 namespace meta {
 
 #line 53 "reflect.h2"
-    compiler_services_data::compiler_services_data(
-
+    [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
-    )
-        : errors{ errors_ }
-        , errors_original_size{ cpp2::unsafe_narrow<int>(std::ssize(*cpp2::assert_not_null(errors))) }
-        , generated_tokens{ generated_tokens_ }
-        , parser{ *cpp2::assert_not_null(errors) }
-#line 58 "reflect.h2"
+    ) -> compiler_services_data
+
     {
-
-#line 63 "reflect.h2"
+        return { errors_, 
+                cpp2::unsafe_narrow<int>(std::ssize(*cpp2::assert_not_null(errors_))), 
+                generated_tokens_, 
+                *cpp2::assert_not_null(errors_) }; 
     }
-
-    compiler_services_data::~compiler_services_data() noexcept{}
-compiler_services_data::compiler_services_data(compiler_services_data const& that)
-                                : errors{ that.errors }
-                                , errors_original_size{ that.errors_original_size }
-                                , generated_tokens{ that.generated_tokens }
-                                , parser{ that.parser }
-                                , metafunction_name{ that.metafunction_name }
-                                , metafunction_args{ that.metafunction_args }
-                                , metafunctions_used{ that.metafunctions_used }{}
 
 #line 71 "reflect.h2"
 [[nodiscard]] auto apply_metafunctions(
