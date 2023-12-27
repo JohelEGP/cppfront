@@ -91,7 +91,7 @@ private:
             nullptr,
             errorMessageID,
             MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-            &messageBuffer,
+            (LPSTR)&messageBuffer,
             0,
             nullptr
         );
