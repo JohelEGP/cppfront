@@ -5,12 +5,11 @@
 #include <utility>
 #include "cpp2util.h"
 
-#ifdef _MSC_VER
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#ifdef _WIN32
+#include <libloaderapi.h>
 #else
 #include <dlfcn.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
 namespace cpp2::meta {
 
@@ -19,11 +18,11 @@ class dll
 public:
     dll(std::string const& path)
     {
-#ifdef _MSC_VER
+#ifdef _WIN32
         handle_ = static_cast<void*>(LoadLibraryA(path.c_str()));
 #else
         handle_ = static_cast<void*>(dlopen(path.c_str(), RTLD_NOW|RTLD_LOCAL));
-#endif // _MSC_VER
+#endif // _WIN32
         // TODO: log if the dll could not be open?
     }
 
@@ -31,11 +30,11 @@ public:
     {
         if(handle_ == nullptr);
             return;
-#ifdef _MSC_VER
-        FreeLibrary(static_cast<HMODULE>(handle));
+#ifdef _WIN32
+        FreeLibrary(static_cast<HMODULE>(handle_));
 #else
         dlclose(handle_);
-#endif // _MSC_VER
+#endif // _WIN32
     }
 
     // Uncopyable
@@ -72,12 +71,19 @@ public:
             auto const us_name = "_" + name;
             symbol = dlsym(handle_, us_name.c_str());
         }
-#endif // _MSC_VER
+#endif // _WIN32
         // TODO: log if the symbol is not found?
-        return reinterpret_cast<T*>(symbol);
+        return function_cast<T*>(symbol);
     }
 private:
     void* handle_{nullptr};
+
+    template<typename T>
+    static T function_cast(auto ptr) {
+        using generic_function_ptr = void (*)(void);
+        return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
+    }
+
 };
 
 
@@ -88,6 +94,10 @@ private:
 //  'CPPFRONT_METAFUNCTION_LIBRARIES'
 auto load_metafunction(std::string const& name) -> std::function<void(type_declaration&)>
 {
+    // FIXME: On Windows, using this approach with the system apis not set to utf8, will
+    // break if a metafunction library contains unicode codepoints in its name, a proper
+    // way to handle this would be to use _wgetenv and use wchar_t strings for the dll opening
+    // function
     auto cpp1_libraries_cstr = std::getenv("CPPFRONT_METAFUNCTION_LIBRARIES");
     if (!cpp1_libraries_cstr) {
         return {};
