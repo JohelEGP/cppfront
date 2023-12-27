@@ -17,12 +17,12 @@ namespace cpp2::meta {
 class dll
 {
 public:
-    dll(std::string_view path)
+    dll(std::string const& path)
     {
 #ifdef _MSC_VER
-        handle_ = static_cast<void*>(LoadLibraryA(path.data()));
+        handle_ = static_cast<void*>(LoadLibraryA(path.c_str()));
 #else
-        handle_ = static_cast<void*>(dlopen(path.data(), RTLD_NOW|RTLD_LOCAL));
+        handle_ = static_cast<void*>(dlopen(path.c_str(), RTLD_NOW|RTLD_LOCAL));
 #endif // _MSC_VER
         // TODO: log if the dll could not be open?
     }
@@ -60,17 +60,16 @@ public:
     auto is_open() noexcept -> bool { return handle_ != nullptr; }
 
     template<typename T>
-    auto get_alias(std::string_view name) noexcept -> T*
+    auto get_alias(std::string const& name) noexcept -> T*
     {
-        void* symbol = nullptr;
-#ifdef _MSC_VER
-        symbol = static_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle_), name.data()));
+#ifdef _WIN32
+        auto symbol = GetProcAddress(static_cast<HMODULE>(handle_), name.c_str());
 #else
-        symbol = dlsym(handle_, name.data());
+        auto symbol = dlsym(handle_, name.c_str());
         if(symbol == nullptr)
         {
             // Some platforms export with additional underscore, so try that.
-            auto const us_name = std::string("_") + name.data();
+            auto const us_name = "_" + name;
             symbol = dlsym(handle_, us_name.c_str());
         }
 #endif // _MSC_VER
@@ -103,7 +102,7 @@ auto load_metafunction(std::string const& name) -> std::function<void(type_decla
         auto lib_path = cpp1_libraries.substr(0, colon);
         cpp1_libraries.remove_prefix(lib_path.size() + unsigned(colon != lib_path.npos));
 
-        auto lib = std::make_shared<dll>(lib_path);
+        auto lib = std::make_shared<dll>(std::string(lib_path));
         if(!lib->is_open())
             continue;
 
