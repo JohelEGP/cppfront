@@ -6,7 +6,9 @@
 #include "cpp2util.h"
 
 #ifdef _WIN32
-#include <libloaderapi.h>
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
 #else
 #include <dlfcn.h>
 #endif // _WIN32

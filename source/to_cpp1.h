@@ -6448,7 +6448,7 @@ public:
                 {
                     auto identifier = print_to_string(*n.identifier);
                     printer.print_extra(
-                        "\nextern \"C\" void cpp2_metafunction_"
+                        "\nCPP2_C_API void cpp2_metafunction_"
                         + identifier
                         + "(void* t) { "
                         + identifier
