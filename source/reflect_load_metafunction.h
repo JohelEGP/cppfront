@@ -41,20 +41,9 @@ public:
     dll(dll&) = delete;
     dll(dll const&) = delete;
     auto operator=(dll const&) -> dll& = delete;
-
-    // Movable
-    dll(dll&& from) noexcept
-    {
-        handle_ = from.handle_;
-        from.handle_ = nullptr;
-    }
-
-    auto operator=(dll&& from) noexcept -> dll&
-    {
-        handle_ = from.handle_;
-        from.handle_ = nullptr;
-        return *this;
-    }
+    // Unmovable
+    dll(dll&& from) = delete;
+    auto operator=(dll&& from) -> dll& = delete;
 
     auto is_open() noexcept -> bool { return handle_ != nullptr; }
 
