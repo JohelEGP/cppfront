@@ -32,13 +32,14 @@ public:
 
     ~dll() noexcept
     {
-        if(handle_ == nullptr);
-            return;
+        if(handle_ != nullptr)
+        {
 #ifdef _WIN32
-        FreeLibrary(static_cast<HMODULE>(handle_));
+            FreeLibrary(static_cast<HMODULE>(handle_));
 #else
-        dlclose(handle_);
+            dlclose(handle_);
 #endif // _WIN32
+        }
     }
 
     // Uncopyable
