@@ -26,13 +26,14 @@ public:
         handle_ = static_cast<void*>(dlopen(path.c_str(), RTLD_NOW|RTLD_LOCAL));
 #endif // _WIN32
         // TODO(Herb/Johel): Decide a user-friendlier way of reporting this.
-        if(handle_ == nullptr)
+        if(!handle_) {
             std::cerr << "Error while loading DLL '" << path << "': " << get_last_error_() << '\n';
+        }
     }
 
     ~dll() noexcept
     {
-        if(handle_ != nullptr)
+        if(handle_)
         {
 #ifdef _WIN32
             FreeLibrary(static_cast<HMODULE>(handle_));
@@ -50,7 +51,7 @@ public:
     dll(dll&& from) = delete;
     auto operator=(dll&& from) -> dll& = delete;
 
-    auto is_open() noexcept -> bool { return handle_ != nullptr; }
+    auto is_open() noexcept -> bool { return handle_; }
 
     template<typename T>
     auto get_alias(std::string const& name) noexcept -> T*
@@ -59,7 +60,7 @@ public:
         auto symbol = GetProcAddress(static_cast<HMODULE>(handle_), name.c_str());
 #else
         auto symbol = dlsym(handle_, name.c_str());
-        if(symbol == nullptr)
+        if(!symbol)
         {
             // Some platforms export with additional underscore, so try that.
             auto const us_name = "_" + name;
@@ -67,24 +68,28 @@ public:
         }
 #endif // _WIN32
         // TODO(Herb/Johel): Decide a user-friendlier way of reporting this.
-        if(symbol == nullptr)
+        if(!symbol) {
             std::cerr << "Error while looking up DLL symbol '" << name << "': " << get_last_error_() << '\n';
+        }
         return function_cast_<T*>(symbol);
     }
 private:
     void* handle_{nullptr};
 
     template<typename T>
-    static auto function_cast_(auto ptr) noexcept -> T {
+    static auto function_cast_(auto ptr) noexcept -> T
+    {
         using generic_function_ptr = void (*)(void);
         return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
     }
 
-    static auto get_last_error_() noexcept -> std::string {
+    static auto get_last_error_() noexcept -> std::string
+    {
 #ifdef _WIN32
         DWORD errorMessageID = GetLastError();
-        if(errorMessageID == 0)
+        if(errorMessageID == 0) {
             return {}; // No error message has been recorded
+        }
         LPSTR messageBuffer = nullptr;
         auto size = FormatMessageA(
             FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -132,14 +137,15 @@ auto load_metafunction(std::string const& name) -> std::function<void(type_decla
         cpp1_libraries.remove_prefix(lib_path.size() + unsigned(colon != lib_path.npos));
 
         auto lib = std::make_shared<dll>(std::string(lib_path));
-        if(!lib->is_open())
+        if(!lib->is_open()) {
             continue;
+        }
 
-        if (auto* fun = lib->get_alias<void(void*)>(cpp1_name); fun != nullptr)
+        if (auto* fun = lib->get_alias<void(void*)>(cpp1_name))
         {
             return [
                 fun = fun,
-                lib = lib
+                lib = std::move(lib)
                 ](type_declaration& t)
             {
                 fun(static_cast<void*>(&t));
