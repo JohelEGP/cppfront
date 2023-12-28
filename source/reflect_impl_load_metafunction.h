@@ -75,7 +75,7 @@ private:
     template<typename T>
     static auto function_cast_(auto ptr) noexcept -> T
     {
-        using generic_function_ptr = void (*)(void);
+        using generic_function_ptr = void (*)();
         return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
     }
 
