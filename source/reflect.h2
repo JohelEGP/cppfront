@@ -41,6 +41,31 @@ source_position: @value type =
 }
 
 
+passing_style: @enum type =
+{
+    in;
+    copy;
+    inout;
+    out;
+    move;
+    forward;
+    invalid;
+}
+
+//  Not `passing_style::from_string` to workaround #555.
+to_passing_style: (s: std::string_view) -> passing_style =
+{
+    return inspect s -> passing_style {
+        is (passing_style::in.to_string()) = passing_style::in;
+        is (passing_style::copy.to_string()) = passing_style::copy;
+        is (passing_style::inout.to_string()) = passing_style::inout;
+        is (passing_style::out.to_string()) = passing_style::out;
+        is (passing_style::move.to_string()) = passing_style::move;
+        is (passing_style::forward.to_string()) = passing_style::forward;
+        is _ = passing_style::invalid;
+    };
+}
+
 //-----------------------------------------------------------------------
 //
 //  Compiler services
@@ -378,7 +403,7 @@ function_declaration: @copyable type =
     has_move_parameter_named     : (this, s: std::string_view) -> bool = n*.has_move_parameter_named(s);
     first_parameter_name         : (this) -> std::string               = n*.first_parameter_name();
 
-    has_parameter_with_name_and_pass: (this, s: std::string_view, pass) -> bool
+    has_parameter_with_name_and_pass: (this, s: std::string_view, pass: passing_style) -> bool
                                                   = n*.has_parameter_with_name_and_pass(s, pass);
     is_function_with_this        : (this) -> bool = n*.is_function_with_this();
     is_virtual                   : (this) -> bool = n*.is_virtual_function();

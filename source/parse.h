@@ -594,29 +594,8 @@ auto binary_expression_node<Name, Term>::is_standalone_expression() const
 }
 
 
-enum class passing_style { in=0, copy, inout, out, move, forward, invalid };
-auto to_passing_style(token const& t) -> passing_style {
-    if (t.type() == lexeme::Identifier) {
-        if (t == "in"     ) { return passing_style::in; }
-        if (t == "copy"   ) { return passing_style::copy; }
-        if (t == "inout"  ) { return passing_style::inout; }
-        if (t == "out"    ) { return passing_style::out; }
-        if (t == "move"   ) { return passing_style::move; }
-        if (t == "forward") { return passing_style::forward; }
-    }
-    return passing_style::invalid;
-}
-auto to_string_view(passing_style pass) -> std::string_view {
-    switch (pass) {
-    break;case passing_style::in     : return "in";
-    break;case passing_style::copy   : return "copy";
-    break;case passing_style::inout  : return "inout";
-    break;case passing_style::out    : return "out";
-    break;case passing_style::move   : return "move";
-    break;case passing_style::forward: return "forward";
-    break;default                    : return "INVALID passing_style";
-    }
-}
+using meta::passing_style;
+using meta::to_passing_style;
 
 
 struct expression_list_node
@@ -626,7 +605,7 @@ struct expression_list_node
     bool inside_initializer  = false;
 
     struct term {
-        passing_style                    pass = {};
+        passing_style                    pass = passing_style{};
         std::unique_ptr<expression_node> expr;
 
         auto visit(auto& v, int depth) -> void
@@ -4459,7 +4438,7 @@ auto pretty_print_visualize(expression_list_node const& n, int indent)
             || expr.pass == passing_style::forward
             )
         {
-            ret += to_string_view(expr.pass) + std::string{" "};
+          ret += expr.pass.to_string() + std::string{" "};
         }
         ret += pretty_print_visualize(*expr.expr, indent);
         if (++i < std::ssize(n.expressions)) {
@@ -4880,7 +4859,7 @@ auto pretty_print_visualize(parameter_declaration_node const& n, int indent, boo
         break;default: ; // none
         }
 
-        ret += to_string_view(n.pass);
+        ret += n.pass.to_string();
         ret += " ";
     }
 
@@ -4934,7 +4913,7 @@ auto pretty_print_visualize(function_type_node const& n, int indent)
         ret += try_pretty_print_visualize<function_type_node::list>(n.returns, indent+1);
         if (n.returns.index() == function_type_node::id) {
             auto& single = std::get<function_type_node::id>(n.returns);
-            ret += to_string_view(single.pass)
+            ret += single.pass.to_string()
                 + std::string{" "} + pretty_print_visualize(*single.type, indent+1);
         }
     }
@@ -7615,19 +7594,23 @@ private:
             && n->pass != passing_style::inout
             )
         {
-            switch (n->pass) {
-            break;case passing_style::in:
+            if (n->pass == passing_style::in) {
                 error( "an 'in' parameter is always const, 'const' isn't needed and isn't allowed", false );
-            break;case passing_style::inout:
+            }
+            else if (n->pass == passing_style::inout) {
                 // error( "an 'inout' parameter can't be const, if you do want it to be const then use 'in' instead", false );
-            break;case passing_style::out:
+            }
+            else if (n->pass == passing_style::out) {
                 error( "an 'out' parameter can't be const, otherwise it can't be initialized in the function body", false );
-            break;case passing_style::move:
+            }
+            else if (n->pass == passing_style::move) {
                 error( "a 'move' parameter can't be const, otherwise it can't be moved from in the function body", false );
-            break;case passing_style::forward:
+            }
+            else if (n->pass == passing_style::forward) {
                 error( "a 'forward' parameter shouldn't be const, because it passes along the argument's actual const-ness (and actual value category)", false );
-            break;default:
-                assert (!"ICE: missing case");
+            }
+            else {
+                assert (false && "ICE: missing case");
             }
             return {};
         }
@@ -7939,7 +7922,7 @@ private:
                 }
                 else {
                     auto msg = std::string("'");
-                    msg += to_string_view(pass);
+                    msg += pass.to_string();
                     error(msg + "' must be followed by a type-id");
                 }
             }
@@ -9133,7 +9116,7 @@ public:
         if (n.returns.index() == function_type_node::id) {
             auto& r = std::get<function_type_node::id>(n.returns);
             if (r.pass != passing_style::invalid) {
-                o << pre(indent+1) << "returns by: " << to_string_view(r.pass) << "\n";
+              o << pre(indent+1) << "returns by: " << r.pass.to_string() << "\n";
             }
         }
     }
@@ -9206,14 +9189,8 @@ public:
         o << pre(indent) << "parameter-declaration\n";
 
         o << pre(indent+1);
-        switch (n.pass) {
-        break;case passing_style::in     : o << "in";
-        break;case passing_style::copy   : o << "copy";
-        break;case passing_style::inout  : o << "inout";
-        break;case passing_style::out    : o << "out";
-        break;case passing_style::move   : o << "move";
-        break;case passing_style::forward: o << "forward";
-        break;default: ;
+        if (n.pass != passing_style::invalid) {
+            o << n.pass.to_string();
         }
 
         o << pre(indent+1);
