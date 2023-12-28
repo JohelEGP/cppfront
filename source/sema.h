@@ -18,7 +18,7 @@
 #ifndef CPP2_SEMA_H
 #define CPP2_SEMA_H
 
-#include "reflect.h"
+#include "reflect_impl.h"
 
 
 namespace cpp2 {

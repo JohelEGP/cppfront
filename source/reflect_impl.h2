@@ -1,0 +1,179 @@
+
+//  Copyright (c) Herb Sutter
+//  SPDX-License-Identifier: CC-BY-NC-ND-4.0
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+
+//===========================================================================
+//  Reflection and meta
+//===========================================================================
+
+#include "reflect_impl_load_metafunction.h"
+
+#include "parse.h"
+
+
+cpp2: namespace = {
+
+meta: namespace = {
+
+
+//-----------------------------------------------------------------------
+//
+//  Compiler services data
+//
+//-----------------------------------------------------------------------
+//
+
+compiler_services_data: @struct type =
+{
+    //  Common data members
+    //
+    public errors               : *std::vector<error_entry>;
+    public errors_original_size : int;
+    public generated_tokens     : *std::deque<token>;
+    public parser               : cpp2::parser;
+    public metafunction_name    : std::string = ();
+    public metafunction_args    : std::vector<std::string> = ();
+    public metafunctions_used   : bool = false;
+
+    //  Make function
+    //
+    make: (
+        errors_          : *std::vector<error_entry>,
+        generated_tokens_: *std::deque<token>
+    )
+        -> compiler_services_data
+    = {
+        return (errors_,
+                cpp2::unsafe_narrow<int>(std::ssize(errors_*)),
+                generated_tokens_,
+                errors_*);
+    }
+}
+
+
+//-----------------------------------------------------------------------
+//
+//  apply_metafunctions
+//
+apply_metafunctions: (
+    inout n     : declaration_node,
+    inout rtype : type_declaration,
+    error
+    )
+    -> bool
+= {
+    assert( n.is_type() );
+
+    //  Check for _names reserved for the metafunction implementation
+    for  rtype.get_members()
+    do   (m)
+    {
+        m.require( !m.name().starts_with("_") || m.name().ssize() > 1,
+                    "a type that applies a metafunction cannot have a body that declares a name that starts with '_' - those names are reserved for the metafunction implementation");
+    }
+
+    //  For each metafunction, apply it
+    for n.metafunctions
+    do  (meta)
+    {
+        //  Convert the name and any template arguments to strings
+        //  and record that in rtype
+        name := meta*.to_string();
+        name = name.substr(0, name.find('<'));
+
+        args: std::vector<std::string> = ();
+        for meta*.template_arguments()
+        do  (arg)
+            args.push_back( arg.to_string() );
+
+        rtype.set_metafunction_name( name, args );
+
+        //  Dispatch
+        //
+        if name == "interface" {
+            interface( rtype );
+        }
+        else if name == "polymorphic_base" {
+            polymorphic_base( rtype );
+        }
+        else if name == "ordered" {
+            ordered( rtype );
+        }
+        else if name == "weakly_ordered" {
+            weakly_ordered( rtype );
+        }
+        else if name == "partially_ordered" {
+            partially_ordered( rtype );
+        }
+        else if name == "copyable" {
+            copyable( rtype );
+        }
+        else if name == "basic_value" {
+            basic_value( rtype );
+        }
+        else if name == "value" {
+            value( rtype );
+        }
+        else if name == "weakly_ordered_value" {
+            weakly_ordered_value( rtype );
+        }
+        else if name == "partially_ordered_value" {
+            partially_ordered_value( rtype );
+        }
+        else if name == "struct" {
+            cpp2_struct( rtype );
+        }
+        else if name == "enum" {
+            cpp2_enum( rtype );
+        }
+        else if name == "flag_enum" {
+            flag_enum( rtype );
+        }
+        else if name == "union" {
+            cpp2_union( rtype );
+        }
+        else if name == "print" {
+            print( rtype );
+        }
+        else {
+            (load := load_metafunction(name))
+            if load.metafunction {
+                load.metafunction( rtype );
+            } else {
+                error( "unrecognized metafunction name: " + name );
+                error( "currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print" );
+                if !load.error.empty() {
+                    error( load.error );
+                }
+                return false;
+            }
+        }
+
+        if (
+            !args.empty()
+            && !rtype.arguments_were_used()
+            )
+        {
+            error( name + " did not use its template arguments - did you mean to write '" + name + " <" + args[0] + "> type' (with the spaces)?");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+}
+
+}
+
+#include "cpp2reflect.hpp"

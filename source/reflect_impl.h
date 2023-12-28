@@ -1,6 +1,6 @@
 
-#ifndef REFLECT_H_CPP2
-#define REFLECT_H_CPP2
+#ifndef REFLECT_IMPL_H_CPP2
+#define REFLECT_IMPL_H_CPP2
 
 
 //=== Cpp2 type declarations ====================================================
@@ -8,17 +8,17 @@
 
 #include "cpp2util.h"
 
-#line 1 "reflect.h2"
+#line 1 "reflect_impl.h2"
 
-#line 23 "reflect.h2"
+#line 23 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 35 "reflect.h2"
+#line 35 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 175 "reflect.h2"
+#line 175 "reflect_impl.h2"
 }
 
 }
@@ -26,7 +26,7 @@ class compiler_services_data;
 
 //=== Cpp2 type definitions and function declarations ===========================
 
-#line 1 "reflect.h2"
+#line 1 "reflect_impl.h2"
 
 //  Copyright (c) Herb Sutter
 //  SPDX-License-Identifier: CC-BY-NC-ND-4.0
@@ -44,16 +44,16 @@ class compiler_services_data;
 //  Reflection and meta
 //===========================================================================
 
-#include "reflect_load_metafunction.h"
+#include "reflect_impl_load_metafunction.h"
 
 #include "parse.h"
 
-#line 23 "reflect.h2"
+#line 23 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 28 "reflect.h2"
+#line 28 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -80,10 +80,10 @@ class compiler_services_data
         std::deque<token>* generated_tokens_
     ) -> compiler_services_data;
 
-#line 60 "reflect.h2"
+#line 60 "reflect_impl.h2"
 };
 
-#line 63 "reflect.h2"
+#line 63 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -94,7 +94,7 @@ class compiler_services_data
     auto const& error
     ) -> bool;
 
-#line 175 "reflect.h2"
+#line 175 "reflect_impl.h2"
 }
 
 }
@@ -104,14 +104,14 @@ class compiler_services_data
 
 //=== Cpp2 function definitions =================================================
 
-#line 1 "reflect.h2"
+#line 1 "reflect_impl.h2"
 
-#line 23 "reflect.h2"
+#line 23 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 49 "reflect.h2"
+#line 49 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
@@ -124,7 +124,7 @@ namespace meta {
                 *cpp2::assert_not_null(errors_) }; 
     }
 
-#line 67 "reflect.h2"
+#line 67 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -209,7 +209,7 @@ namespace meta {
 {
 auto const& load = load_metafunction(name);
 
-#line 149 "reflect.h2"
+#line 149 "reflect_impl.h2"
             if (load.metafunction) {
                 CPP2_UFCS(metafunction)(load, rtype);
             }else {
@@ -221,7 +221,7 @@ auto const& load = load_metafunction(name);
                 return false; 
             }
 }
-#line 159 "reflect.h2"
+#line 159 "reflect_impl.h2"
         }}}}}}}}}}}}}}}
 
         if ((
@@ -237,7 +237,7 @@ auto const& load = load_metafunction(name);
     return true; 
 }
 
-#line 175 "reflect.h2"
+#line 175 "reflect_impl.h2"
 }
 
 }
