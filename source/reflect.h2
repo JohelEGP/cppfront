@@ -66,6 +66,7 @@ to_passing_style: (s: std::string_view) -> passing_style =
     };
 }
 
+
 //-----------------------------------------------------------------------
 //
 //  Compiler services
@@ -1399,6 +1400,11 @@ print: (t: meta::type_declaration) =
 //
 //  visible - makes t visible in a DLL
 //
+visible: (inout t: meta::type_declaration) =
+{
+    t.require( t.make_visible(),
+               "visible can only be applied to a namespace-scope name");
+}
 visible: (inout t: meta::function_declaration) =
 {
     t.require( t.make_visible(),

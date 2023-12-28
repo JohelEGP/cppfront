@@ -144,13 +144,16 @@ apply_metafunctions: (
         else if name == "print" {
             print( rtype );
         }
+        else if name == "visible" {
+            visible( rtype );
+        }
         else {
             (load := load_metafunction(name))
             if load.metafunction {
                 load.metafunction( rtype );
             } else {
                 error( "unrecognized metafunction name: " + name );
-                error( "currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print" );
+                error( "currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible" );
                 if !load.error.empty() {
                     error( load.error );
                 }

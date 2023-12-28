@@ -18,7 +18,7 @@ namespace meta {
 #line 35 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 241 "reflect_impl.h2"
+#line 244 "reflect_impl.h2"
 }
 
 }
@@ -94,14 +94,14 @@ class compiler_services_data
     auto const& error
     ) -> bool;
 
-#line 175 "reflect_impl.h2"
+#line 178 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 241 "reflect_impl.h2"
+#line 244 "reflect_impl.h2"
 }
 
 }
@@ -212,24 +212,27 @@ namespace meta {
         else {if (name == "print") {
             print(rtype);
         }
+        else {if (name == "visible") {
+            visible(rtype);
+        }
         else {
 {
 auto const& load = load_metafunction(name);
 
-#line 149 "reflect_impl.h2"
+#line 152 "reflect_impl.h2"
             if (load.metafunction) {
                 CPP2_UFCS(metafunction)(load, rtype);
             }else {
                 error("unrecognized metafunction name: " + name);
-                error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print");
+                error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible");
                 if (!(CPP2_UFCS(empty)(load.error))) {
                     error(load.error);
                 }
                 return false; 
             }
 }
-#line 159 "reflect_impl.h2"
-        }}}}}}}}}}}}}}}
+#line 162 "reflect_impl.h2"
+        }}}}}}}}}}}}}}}}
 
         if ((
             !(CPP2_UFCS(empty)(args)) 
@@ -244,7 +247,7 @@ auto const& load = load_metafunction(name);
     return true; 
 }
 
-#line 175 "reflect_impl.h2"
+#line 178 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -310,7 +313,7 @@ auto const& load = load_metafunction(name);
     return true; 
 }
 
-#line 241 "reflect_impl.h2"
+#line 244 "reflect_impl.h2"
 }
 
 }
