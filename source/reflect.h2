@@ -145,12 +145,15 @@ apply_metafunctions: (
             print( rtype );
         }
         else {
-            (metafunction := load_metafunction(name))
-            if metafunction {
-                metafunction( rtype );
+            (load := load_metafunction(name))
+            if load.metafunction {
+                load.metafunction( rtype );
             } else {
                 error( "unrecognized metafunction name: " + name );
-                error( "(temporary alpha limitation) currently the supported names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print" );
+                error( "currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print" );
+                if !load.error.empty() {
+                    error( load.error );
+                }
                 return false;
             }
         }

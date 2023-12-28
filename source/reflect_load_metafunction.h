@@ -25,9 +25,8 @@ public:
 #else
         handle_ = static_cast<void*>(dlopen(path.c_str(), RTLD_NOW|RTLD_LOCAL));
 #endif // _WIN32
-        // TODO(Herb/Johel): Decide a user-friendlier way of reporting this.
         if(!handle_) {
-            std::cerr << "Error while loading DLL '" << path << "': " << get_last_error_() << '\n';
+            cpp2::Default.report_violation(("failed to load DLL '" + path + "': " + get_last_error_()).c_str());
         }
     }
 
@@ -67,10 +66,6 @@ public:
             symbol = dlsym(handle_, us_name.c_str());
         }
 #endif // _WIN32
-        // TODO(Herb/Johel): Decide a user-friendlier way of reporting this.
-        if(!symbol) {
-            std::cerr << "Error while looking up DLL symbol '" << name << "': " << get_last_error_() << '\n';
-        }
         return function_cast_<T*>(symbol);
     }
 private:
@@ -111,12 +106,19 @@ private:
 };
 
 
+struct load_metafunction_ret {
+    std::function<void(type_declaration&)> metafunction;
+    std::string error;
+};
+
+
 //  Load metafunction by opening DLL with OS APIs
 //
 //  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
 //  is read and interpreted as ':'-separated library paths
 //  where a metafunction symbol is looked up at
-auto load_metafunction(std::string const& name) -> std::function<void(type_declaration&)>
+auto load_metafunction(std::string const& name)
+    -> load_metafunction_ret
 {
     // FIXME: On Windows, using this approach with the system apis not set to utf8, will
     // break if a metafunction library contains unicode codepoints in its name, a proper
@@ -128,8 +130,11 @@ auto load_metafunction(std::string const& name) -> std::function<void(type_decla
     }
 
     auto cpp1_libraries = std::string_view{cpp1_libraries_cstr};
-    auto cpp1_name = "cpp2_metafunction_" + name;
+    if (cpp1_libraries.empty()) {
+        return {};
+    }
 
+    auto cpp1_name = "cpp2_metafunction_" + name;
     while (!cpp1_libraries.empty())
     {
         auto colon = cpp1_libraries.find(':');
@@ -143,17 +148,17 @@ auto load_metafunction(std::string const& name) -> std::function<void(type_decla
 
         if (auto* fun = lib->get_alias<void(void*)>(cpp1_name))
         {
-            return [
+            return {[
                 fun = fun,
                 lib = std::move(lib)
                 ](type_declaration& t)
             {
                 fun(static_cast<void*>(&t));
-            };
+            }};
         }
     }
 
-    return {};
+    return {{}, "metafunction not found in libraries " + std::string{cpp1_libraries_cstr}};
 }
 
 }
