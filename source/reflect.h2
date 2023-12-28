@@ -21,6 +21,26 @@ cpp2: namespace = {
 meta: namespace = {
 
 
+lineno_t: type == std::int32_t;
+colno_t: type == std::int32_t;   // not int16_t... encountered >80,000 char line during testing
+
+source_position: @value type =
+{
+    public lineno: lineno_t = 1;   // one-based offset into program source
+    public colno: colno_t = 1;     // one-based offset into line
+
+    operator=: (implicit out this) = { }
+    operator=: (implicit out this, l: lineno_t) = lineno = l;
+    operator=: (implicit out this, l: lineno_t, c: colno_t) =
+    {
+        lineno = l;
+        colno = c;
+    }
+
+    to_string: (this) -> std::string = "((lineno)$,(colno)$)";
+}
+
+
 //-----------------------------------------------------------------------
 //
 //  Compiler services
@@ -126,8 +146,11 @@ compiler_services: @polymorphic_base @copyable type =
         return ret;
     }
 
-    protected position: (this) std::any_cast<source_position>(vposition());
-    private vposition: (virtual this) -> std::any = source_position();
+    position: (virtual this)
+        -> source_position
+    = {
+        return ();
+    }
 
     //  Error diagnosis and handling, integrated with compiler output
     //  Unlike a contract violation, .requires continues further processing
@@ -196,7 +219,7 @@ type_id: @polymorphic_base @copyable type =
     template_args_count : (this) -> int         = n*.template_arguments().ssize();
     to_string           : (this) -> std::string = n*.to_string();
 
-    private vposition: (override this) -> std::any = n*.position();
+    position: (override this) -> source_position = n*.position();
 }
 */
 
@@ -243,7 +266,7 @@ declaration_base: @polymorphic_base @copyable type =
         n = n_;
     }
 
-    private vposition: (override this) -> std::any = n*.position();
+    position: (override this) -> source_position = n*.position();
 
     print: (this) -> std::string = n*.pretty_print_visualize(0);
 }
