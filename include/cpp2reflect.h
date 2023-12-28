@@ -81,7 +81,7 @@ namespace meta {
 using lineno_t = std::int32_t;
 using colno_t = std::int32_t;    // not int16_t... encountered >80,000 char line during testing
 
-class source_position
+class CPPFRONTAPI source_position
  {
     public: lineno_t lineno {1};   // one-based offset into program source
     public: colno_t colno {1};     // one-based offset into line
@@ -105,7 +105,7 @@ public: auto operator=(source_position&& that) noexcept -> source_position& ;
 };
 
 #line 44 "reflect.h2"
-class passing_style
+class CPPFRONTAPI passing_style
  {
 private: cpp2::i8 _value; private: constexpr passing_style(cpp2::in<cpp2::i64> _val);
 
@@ -140,7 +140,7 @@ public: [[nodiscard]] auto to_string() const& -> std::string;
 //-----------------------------------------------------------------------
 //
 
-class compiler_services
+class CPPFRONTAPI compiler_services
  {
     //  Common data members
     //
@@ -217,7 +217,7 @@ public: compiler_services(compiler_services const& that);
 
 //  All type_ids are wrappers around a pointer to node
 //
-type_id: @polymorphic_base @copyable type =
+type_id: @visible @polymorphic_base @copyable type =
 {
     this: compiler_services = ();
 
@@ -304,7 +304,7 @@ public: declaration_base(declaration_base const& that);
 //-----------------------------------------------------------------------
 //  All declarations
 //
-class declaration
+class CPPFRONTAPI declaration
 : public declaration_base {
 
 #line 308 "reflect.h2"
@@ -386,7 +386,7 @@ public: declaration(declaration const& that);
 //-----------------------------------------------------------------------
 //  Function declarations
 //
-class function_declaration
+class CPPFRONTAPI function_declaration
 : public declaration {
 
 #line 393 "reflect.h2"
@@ -451,7 +451,7 @@ class function_declaration
 //-----------------------------------------------------------------------
 //  Object declarations
 //
-class object_declaration
+class CPPFRONTAPI object_declaration
 : public declaration {
 
 #line 480 "reflect.h2"
@@ -479,7 +479,7 @@ class object_declaration
 //-----------------------------------------------------------------------
 //  Type declarations
 //
-class type_declaration
+class CPPFRONTAPI type_declaration
 : public declaration {
 
 #line 516 "reflect.h2"
@@ -537,7 +537,7 @@ struct query_declared_value_set_functions_ret { bool out_this_in_that; bool out_
 //-----------------------------------------------------------------------
 //  Alias declarations
 //
-class alias_declaration
+class CPPFRONTAPI alias_declaration
 : public declaration {
 
 #line 651 "reflect.h2"

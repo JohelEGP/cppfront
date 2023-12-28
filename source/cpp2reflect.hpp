@@ -672,7 +672,7 @@ auto add_virtual_destructor(meta::type_declaration& t) -> void
 }
 
 #line 693 "reflect.h2"
-auto interface(meta::type_declaration& t) -> void
+CPPFRONTAPI auto interface(meta::type_declaration& t) -> void
 {
     auto has_dtor {false}; 
 
@@ -699,7 +699,7 @@ auto interface(meta::type_declaration& t) -> void
 }
 
 #line 739 "reflect.h2"
-auto polymorphic_base(meta::type_declaration& t) -> void
+CPPFRONTAPI auto polymorphic_base(meta::type_declaration& t) -> void
 {
     auto has_dtor {false}; 
 
@@ -749,25 +749,25 @@ auto ordered_impl(
 }
 
 #line 813 "reflect.h2"
-auto ordered(meta::type_declaration& t) -> void
+CPPFRONTAPI auto ordered(meta::type_declaration& t) -> void
 {
     ordered_impl(t, "strong_ordering");
 }
 
 #line 821 "reflect.h2"
-auto weakly_ordered(meta::type_declaration& t) -> void
+CPPFRONTAPI auto weakly_ordered(meta::type_declaration& t) -> void
 {
     ordered_impl(t, "weak_ordering");
 }
 
 #line 829 "reflect.h2"
-auto partially_ordered(meta::type_declaration& t) -> void
+CPPFRONTAPI auto partially_ordered(meta::type_declaration& t) -> void
 {
     ordered_impl(t, "partial_ordering");
 }
 
 #line 851 "reflect.h2"
-auto copyable(meta::type_declaration& t) -> void
+CPPFRONTAPI auto copyable(meta::type_declaration& t) -> void
 {
     //  If the user explicitly wrote any of the copy/move functions,
     //  they must also have written the most general one - we can't
@@ -789,7 +789,7 @@ auto copyable(meta::type_declaration& t) -> void
 }
 
 #line 879 "reflect.h2"
-auto basic_value(meta::type_declaration& t) -> void
+CPPFRONTAPI auto basic_value(meta::type_declaration& t) -> void
 {
     CPP2_UFCS(copyable)(t);
 
@@ -808,26 +808,26 @@ auto basic_value(meta::type_declaration& t) -> void
 }
 
 #line 907 "reflect.h2"
-auto value(meta::type_declaration& t) -> void
+CPPFRONTAPI auto value(meta::type_declaration& t) -> void
 {
     CPP2_UFCS(ordered)(t);
     CPP2_UFCS(basic_value)(t);
 }
 
-auto weakly_ordered_value(meta::type_declaration& t) -> void
+CPPFRONTAPI auto weakly_ordered_value(meta::type_declaration& t) -> void
 {
     CPP2_UFCS(weakly_ordered)(t);
     CPP2_UFCS(basic_value)(t);
 }
 
-auto partially_ordered_value(meta::type_declaration& t) -> void
+CPPFRONTAPI auto partially_ordered_value(meta::type_declaration& t) -> void
 {
     CPP2_UFCS(partially_ordered)(t);
     CPP2_UFCS(basic_value)(t);
 }
 
 #line 951 "reflect.h2"
-auto cpp2_struct(meta::type_declaration& t) -> void
+CPPFRONTAPI auto cpp2_struct(meta::type_declaration& t) -> void
 {
     for ( auto& m : CPP2_UFCS(get_members)(t) ) 
     {
@@ -1037,7 +1037,7 @@ std::string to_string = "    to_string: (this) -> std::string = { \n";
 }
 
 #line 1184 "reflect.h2"
-auto cpp2_enum(meta::type_declaration& t) -> void
+CPPFRONTAPI auto cpp2_enum(meta::type_declaration& t) -> void
 {
     //  Let basic_enum do its thing, with an incrementing value generator
     CPP2_UFCS(basic_enum)(t, 
@@ -1054,7 +1054,7 @@ auto cpp2_enum(meta::type_declaration& t) -> void
 }
 
 #line 1211 "reflect.h2"
-auto flag_enum(meta::type_declaration& t) -> void
+CPPFRONTAPI auto flag_enum(meta::type_declaration& t) -> void
 {
     //  Let basic_enum do its thing, with a power-of-two value generator
     CPP2_UFCS(basic_enum)(t, 
@@ -1076,7 +1076,7 @@ auto flag_enum(meta::type_declaration& t) -> void
 }
 
 #line 1257 "reflect.h2"
-auto cpp2_union(meta::type_declaration& t) -> void
+CPPFRONTAPI auto cpp2_union(meta::type_declaration& t) -> void
 {
     std::vector<value_member_info> alternatives {}; 
 {
@@ -1236,18 +1236,18 @@ std::string value_set = "";
 }
 
 #line 1393 "reflect.h2"
-auto print(cpp2::in<meta::type_declaration> t) -> void
+CPPFRONTAPI auto print(cpp2::in<meta::type_declaration> t) -> void
 {
     std::cout << CPP2_UFCS(print)(t) << "\n";
 }
 
 #line 1403 "reflect.h2"
-auto visible(meta::type_declaration& t) -> void
+CPPFRONTAPI auto visible(meta::type_declaration& t) -> void
 {
     CPP2_UFCS(require)(t, CPP2_UFCS(make_visible)(t), 
                "visible can only be applied to a namespace-scope name");
 }
-auto visible(meta::function_declaration& t) -> void
+CPPFRONTAPI auto visible(meta::function_declaration& t) -> void
 {
     CPP2_UFCS(require)(t, CPP2_UFCS(make_visible)(t), 
                "visible can only be applied to a namespace-scope name");
