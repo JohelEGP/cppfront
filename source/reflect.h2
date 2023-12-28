@@ -259,7 +259,7 @@ type_id: @visible @polymorphic_base @copyable type =
 
 //  All declarations are wrappers around a pointer to node
 //
-declaration_base: @polymorphic_base @copyable type =
+declaration_base: @visible @polymorphic_base @copyable type =
 {
     this: compiler_services = ();
 

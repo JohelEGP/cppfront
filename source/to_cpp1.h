@@ -5699,7 +5699,7 @@ public:
         //  If this is a function declaration visible in a DLL
         //  emit the portable macro that makes it visible
         if (
-            printer.get_phase() == printer.phase2_func_defs
+            printer.get_phase() != printer.phase0_type_decls
             && n.is_function()
             && n.is_visible()
             )

@@ -253,7 +253,7 @@ type_id: @visible @polymorphic_base @copyable type =
 
 //  All declarations are wrappers around a pointer to node
 //
-class declaration_base
+class CPPFRONTAPI declaration_base
 : public compiler_services {
 
 #line 266 "reflect.h2"
@@ -580,7 +580,7 @@ auto add_virtual_destructor(meta::type_declaration& t) -> void;
 //
 //  an abstract base class having only pure virtual functions
 //
-auto interface(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto interface(meta::type_declaration& t) -> void;
 
 #line 720 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -602,7 +602,7 @@ auto interface(meta::type_declaration& t) -> void;
 //
 //  Unlike an interface, it can have nonpublic and nonvirtual functions.
 //
-auto polymorphic_base(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto polymorphic_base(meta::type_declaration& t) -> void;
 
 #line 764 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -636,19 +636,19 @@ auto ordered_impl(
 //
 //  Note: the ordering that should be encouraged as default gets the nice name
 //
-auto ordered(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto ordered(meta::type_declaration& t) -> void;
 
 #line 818 "reflect.h2"
 //-----------------------------------------------------------------------
 //  weakly_ordered - a weakly ordered type
 //
-auto weakly_ordered(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto weakly_ordered(meta::type_declaration& t) -> void;
 
 #line 826 "reflect.h2"
 //-----------------------------------------------------------------------
 //  partially_ordered - a partially ordered type
 //
-auto partially_ordered(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto partially_ordered(meta::type_declaration& t) -> void;
 
 #line 835 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -667,7 +667,7 @@ auto partially_ordered(meta::type_declaration& t) -> void;
 //
 //  A type with (copy and move) x (construction and assignment)
 //
-auto copyable(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto copyable(meta::type_declaration& t) -> void;
 
 #line 872 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -677,7 +677,7 @@ auto copyable(meta::type_declaration& t) -> void;
 //  A regular type: copyable, plus has public default construction
 //  and no protected or virtual functions
 //
-auto basic_value(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto basic_value(meta::type_declaration& t) -> void;
 
 #line 897 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -690,13 +690,13 @@ auto basic_value(meta::type_declaration& t) -> void;
 //
 //  Note: the ordering that should be encouraged as default gets the nice name
 //
-auto value(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto value(meta::type_declaration& t) -> void;
 
 #line 913 "reflect.h2"
-auto weakly_ordered_value(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto weakly_ordered_value(meta::type_declaration& t) -> void;
 
 #line 919 "reflect.h2"
-auto partially_ordered_value(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto partially_ordered_value(meta::type_declaration& t) -> void;
 
 #line 926 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -724,7 +724,7 @@ auto partially_ordered_value(meta::type_declaration& t) -> void;
 //  no virtual functions, and no user-defined constructors
 //  (i.e., no invariants) or assignment or destructors.
 //
-auto cpp2_struct(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto cpp2_struct(meta::type_declaration& t) -> void;
 
 #line 969 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -766,7 +766,7 @@ auto basic_enum(
 //
 //          -- P0707R4, section 3
 //
-auto cpp2_enum(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto cpp2_enum(meta::type_declaration& t) -> void;
 
 #line 1201 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -779,7 +779,7 @@ auto cpp2_enum(meta::type_declaration& t) -> void;
 //
 //          -- P0707R4, section 3
 //
-auto flag_enum(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto flag_enum(meta::type_declaration& t) -> void;
 
 #line 1233 "reflect.h2"
 //-----------------------------------------------------------------------
@@ -806,24 +806,24 @@ auto flag_enum(meta::type_declaration& t) -> void;
 //  a type that contains exactly one of a fixed set of values at a time
 //
 
-auto cpp2_union(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto cpp2_union(meta::type_declaration& t) -> void;
 
 #line 1389 "reflect.h2"
 //-----------------------------------------------------------------------
 //
 //  print - output a pretty-printed visualization of t
 //
-auto print(cpp2::in<meta::type_declaration> t) -> void;
+CPPFRONTAPI auto print(cpp2::in<meta::type_declaration> t) -> void;
 
 #line 1399 "reflect.h2"
 //-----------------------------------------------------------------------
 //
 //  visible - makes t visible in a DLL
 //
-auto visible(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto visible(meta::type_declaration& t) -> void;
 
 #line 1408 "reflect.h2"
-auto visible(meta::function_declaration& t) -> void;
+CPPFRONTAPI auto visible(meta::function_declaration& t) -> void;
 
 #line 1415 "reflect.h2"
 }
