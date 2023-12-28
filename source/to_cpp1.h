@@ -4370,9 +4370,9 @@ public:
             else if (n.pass == passing_style::inout) {
                 printer.print_cpp2( name+"&",       n.position() );
             }
-            else if (n.pass == passing_style::out) {
             //  For generic out parameters, we take a pointer to anything with paramater named "identifier_"
             //  and then generate the out<> as a stack local with the expected name "identifier"
+            else if (n.pass == passing_style::out) {
                 printer.print_cpp2( name,           n.position() );
                 current_functions.back().prolog.statements.push_back(
                     "auto " + identifier + " = cpp2::out(" + identifier + "_); "

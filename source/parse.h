@@ -4438,7 +4438,7 @@ auto pretty_print_visualize(expression_list_node const& n, int indent)
             || expr.pass == passing_style::forward
             )
         {
-          ret += expr.pass.to_string() + std::string{" "};
+            ret += expr.pass.to_string() + std::string{" "};
         }
         ret += pretty_print_visualize(*expr.expr, indent);
         if (++i < std::ssize(n.expressions)) {
@@ -9116,7 +9116,7 @@ public:
         if (n.returns.index() == function_type_node::id) {
             auto& r = std::get<function_type_node::id>(n.returns);
             if (r.pass != passing_style::invalid) {
-              o << pre(indent+1) << "returns by: " << r.pass.to_string() << "\n";
+                o << pre(indent+1) << "returns by: " << r.pass.to_string() << "\n";
             }
         }
     }
