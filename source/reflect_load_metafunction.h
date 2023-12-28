@@ -108,9 +108,9 @@ private:
 
 //  Load metafunction by opening DLL with OS APIs
 //
-//  The ':'-separated library paths
-//  are read from the environment variable
-//  'CPPFRONT_METAFUNCTION_LIBRARIES'
+//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
+//  is read and interpreted as ':'-separated library paths
+//  where a metafunction symbol is looked up at
 auto load_metafunction(std::string const& name) -> std::function<void(type_declaration&)>
 {
     // FIXME: On Windows, using this approach with the system apis not set to utf8, will

@@ -6441,6 +6441,8 @@ public:
 
                 function_returns.pop_back();
 
+                //  Emit the symbol for a metafunction
+                //  to be loaded by `cpp2::meta::load_function`
                 if (
                     n.is_metafunction()
                     && printer.get_phase() == positional_printer::phase2_func_defs
