@@ -219,7 +219,7 @@ compiler_services::compiler_services(compiler_services const& that)
 #line 252 "reflect.h2"
         }
 
-        [[nodiscard]] auto declaration_base::node_pointer::operator*() const& -> auto&& { return *cpp2::assert_not_null(std::any_cast<declaration_node*>(n));  }
+        [[nodiscard]] auto declaration_base::node_pointer::operator*() const& -> auto&& { return *cpp2::assert_not_null(unsafe_narrow<declaration_node*>(n));  }
 
         declaration_base::node_pointer::node_pointer(node_pointer const& that)
                                 : n{ that.n }{}

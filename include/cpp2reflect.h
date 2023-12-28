@@ -228,7 +228,7 @@ class declaration_base
 #line 240 "reflect.h2"
     public: class node_pointer
      {
-        private: std::any n; 
+        private: void* n; 
 
         public: template<typename T> node_pointer(
 

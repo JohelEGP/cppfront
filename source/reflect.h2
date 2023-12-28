@@ -239,7 +239,7 @@ declaration_base: @polymorphic_base @copyable type =
 
     node_pointer: @copyable type =
     {
-        n: std::any;
+        n: *void;
 
         operator=: <T> (
             implicit out this,
@@ -251,7 +251,7 @@ declaration_base: @polymorphic_base @copyable type =
             static_assert( std::is_same_v<T, *declaration_node> );
         }
 
-        operator*: (this) -> forward _ = std::any_cast<*declaration_node>(n)*;
+        operator*: (this) -> forward _ = unsafe_narrow<*declaration_node>(n)*;
     }
 
     protected n: node_pointer;
