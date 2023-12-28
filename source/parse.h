@@ -2536,6 +2536,7 @@ struct declaration_node
     source_position                      pos;
     bool                                 is_variadic = false;
     bool                                 is_constexpr = false;
+    bool                                 is_visible_ = false;
     bool                                 terse_no_equals = false;
     std::unique_ptr<unqualified_id_node> identifier;
     accessibility                        access = accessibility::default_;
@@ -2707,6 +2708,21 @@ public:
         -> bool
     {
         return set_access( accessibility::private_ );
+    }
+
+    auto is_visible() const
+        -> bool
+    {
+        return is_visible_;
+    }
+
+    auto make_visible()
+        -> bool
+    {
+        if (!parent_is_namespace()) {
+            return false;
+        }
+        return is_visible_ = true;
     }
 
     auto has_name() const
@@ -7985,6 +8001,8 @@ private:
 
     auto apply_type_metafunctions( declaration_node& decl )
         -> bool;
+    auto apply_function_metafunctions( declaration_node& decl )
+        -> bool;
 
 
     //G unnamed-declaration:
@@ -8193,14 +8211,6 @@ private:
         {
             n->type = std::move(t);
             assert (n->is_function());
-
-            if (!n->metafunctions.empty()) {
-                errors.emplace_back(
-                    n->metafunctions.front()->position(),
-                    "(temporary alpha limitation) metafunctions are currently not supported on functions, only on types"
-                );
-                return {};
-            }
         }
 
         //  Or a namespace
@@ -8438,6 +8448,16 @@ private:
                 );
                 return {};
             }
+        }
+        //  If this is a function with metafunctions, apply those
+        else if (n->is_function()) {
+          if (!apply_function_metafunctions(*n)) {
+            error(
+                  "error encountered while applying function metafunctions",
+                  false, {}, true
+                  );
+            return {};
+          }
         }
 
         if (

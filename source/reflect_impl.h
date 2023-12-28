@@ -18,7 +18,7 @@ namespace meta {
 #line 35 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 175 "reflect_impl.h2"
+#line 241 "reflect_impl.h2"
 }
 
 }
@@ -95,6 +95,13 @@ class compiler_services_data
     ) -> bool;
 
 #line 175 "reflect_impl.h2"
+[[nodiscard]] auto apply_metafunctions(
+    declaration_node& n, 
+    function_declaration& rfunction, 
+    auto const& error
+    ) -> bool;
+
+#line 241 "reflect_impl.h2"
 }
 
 }
@@ -238,6 +245,72 @@ auto const& load = load_metafunction(name);
 }
 
 #line 175 "reflect_impl.h2"
+[[nodiscard]] auto apply_metafunctions(
+    declaration_node& n, 
+    function_declaration& rfunction, 
+    auto const& error
+    ) -> bool
+
+{
+    if (cpp2::Default.has_handler() && !(CPP2_UFCS(is_function)(n)) ) { cpp2::Default.report_violation(""); }
+
+    //  Check for _names reserved for the metafunction implementation
+//  for  rfunction.get_members()
+//  do   (m)
+//  {
+//      m.require( !m.name().starts_with("_") || m.name().ssize() > 1,
+//                  "a function that applies a metafunction cannot have a body that declares a name that starts with '_' - those names are reserved for the metafunction implementation");
+//  }
+
+    //  For each metafunction, apply it
+    for ( 
+         auto const& meta : n.metafunctions ) 
+    {
+        //  Convert the name and any template arguments to strings
+        //  and record that in rfunction
+        auto name {CPP2_UFCS(to_string)((*cpp2::assert_not_null(meta)))}; 
+        name = CPP2_UFCS(substr)(name, 0, CPP2_UFCS(find)(name, '<'));
+
+        std::vector<std::string> args {}; 
+        for ( 
+             auto const& arg : CPP2_UFCS(template_arguments)((*cpp2::assert_not_null(meta))) ) 
+            CPP2_UFCS(push_back)(args, CPP2_UFCS(to_string)(arg));
+
+        CPP2_UFCS(set_metafunction_name)(rfunction, name, args);
+
+        //  Dispatch
+        //
+        if (name == "visible") {
+            visible(rfunction);
+        }
+        else {
+//          (load := load_metafunction(name))
+//          if load.metafunction {
+//              load.metafunction( rfunction );
+//          } else {
+                error("unrecognized metafunction name: " + name);
+                error("currently supported built-in names are: visible");
+//              if !load.error.empty() {
+//                  error( load.error );
+//              }
+//              return false;
+//          }
+        }
+
+        if ((
+            !(CPP2_UFCS(empty)(args)) 
+            && !(CPP2_UFCS(arguments_were_used)(rfunction)))) 
+
+        {
+            error(name + " did not use its template arguments - did you mean to write '" + name + " <" + CPP2_ASSERT_IN_BOUNDS(args, 0) + "> (...) -> ...' (with the spaces)?");
+            return false; 
+        }
+    }
+
+    return true; 
+}
+
+#line 241 "reflect_impl.h2"
 }
 
 }

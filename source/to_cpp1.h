@@ -5696,16 +5696,21 @@ public:
             }
         }
 
-        //  If this is a function definition and the function is inside
-        //  type(s) that have template parameters and/or requires clauses,
-        //  emit those outer template parameters and requires clauses too
         if (
             printer.get_phase() == printer.phase2_func_defs
             && n.is_function()
-            && n.initializer    // only if the function has a definition (is not abstract)
             )
         {
-            emit_parent_template_parameters();
+            if (n.is_visible()) {
+                printer.print_cpp2("CPPFRONTAPI ", n.position());
+            }
+
+            //  If this is a function definition and the function is inside
+            //  type(s) that have template parameters and/or requires clauses,
+            //  emit those outer template parameters and requires clauses too
+            if (n.initializer) {  // only if the function has a definition (is not abstract))
+                emit_parent_template_parameters();
+            }
         }
 
         //  Now, emit our own template parameters

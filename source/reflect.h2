@@ -326,6 +326,9 @@ declaration: @polymorphic_base @copyable type =
     make_protected   : (inout this) -> bool = n*.make_protected();
     make_private     : (inout this) -> bool = n*.make_private();
 
+    is_visible   : (this)       -> bool = n*.is_visible();
+    make_visible : (inout this) -> bool = n*.make_visible();
+
     has_name         : (this)                      -> bool = n*.has_name();
     has_name         : (this, s: std::string_view) -> bool = n*.has_name(s);
 
@@ -1389,6 +1392,17 @@ union: (inout t : meta::type_declaration)
 print: (t: meta::type_declaration) =
 {
     std::cout << t.print() << "\n";
+}
+
+
+//-----------------------------------------------------------------------
+//
+//  visible - makes t visible in a DLL
+//
+visible: (inout t: meta::function_declaration) =
+{
+    t.require( t.make_visible(),
+               "visible can only be applied to a namespace-scope name");
 }
 
 
