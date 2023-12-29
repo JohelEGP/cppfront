@@ -65,7 +65,7 @@ class compiler_services_data
  {
     //  Common data members
     //
-           public: std::vector<error_entry>* errors; 
+    public: std::vector<error_entry>* errors; 
     public: int errors_original_size; 
     public: std::deque<token>* generated_tokens; 
     public: cpp2::parser parser; 

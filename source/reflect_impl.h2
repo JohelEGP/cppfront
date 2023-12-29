@@ -36,13 +36,13 @@ compiler_services_data: @struct type =
 {
     //  Common data members
     //
-    public errors               : *std::vector<error_entry>;
-    public errors_original_size : int;
-    public generated_tokens     : *std::deque<token>;
-    public parser               : cpp2::parser;
-    public metafunction_name    : std::string = ();
-    public metafunction_args    : std::vector<std::string> = ();
-    public metafunctions_used   : bool = false;
+    errors               : *std::vector<error_entry>;
+    errors_original_size : int;
+    generated_tokens     : *std::deque<token>;
+    parser               : cpp2::parser;
+    metafunction_name    : std::string = ();
+    metafunction_args    : std::vector<std::string> = ();
+    metafunctions_used   : bool = false;
 
     //  Make function
     //
