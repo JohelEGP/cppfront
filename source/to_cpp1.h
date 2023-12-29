@@ -1044,19 +1044,6 @@ class cppfront
     };
     std::vector<arg_info> current_args  = { {} };
 
-    struct active_using_declaration {
-        token const* identifier = {};
-
-        explicit active_using_declaration(using_statement_node const& n) {
-          if (auto id = get_if<id_expression_node::qualified>(&n.id->id)) {
-              identifier = (*id)->ids.back().id->identifier;
-          }
-        }
-    };
-
-    using source_order_name_lookup_res =
-        std::optional<std::variant<declaration_node const*, active_using_declaration>>;
-
     //  Stack of the currently active nested declarations we're inside
     std::vector<declaration_node const*> current_declarations = { {} };
 
@@ -2815,39 +2802,6 @@ public:
     }
 
 
-    auto source_order_name_lookup(unqualified_id_node const& id)
-    -> source_order_name_lookup_res
-    {
-        for (
-            auto first = current_names.rbegin(), last = current_names.rend() - 1;
-            first != last;
-            ++first
-            )
-        {
-            if (
-                auto decl = get_if<declaration_node const*>(&*first);
-                decl
-                && *decl
-                && (*decl)->has_name(*id.identifier)
-                )
-            {
-                return *decl;
-            }
-            else if (
-                auto using_ = get_if<active_using_declaration>(&*first);
-                using_
-                && using_->identifier
-                && *using_->identifier == *id.identifier
-                )
-            {
-                return *using_;
-            }
-        }
-
-        return {};
-    }
-
-
     auto lookup_finds_variable_with_placeholder_type_under_initialization(id_expression_node const& n)
         -> bool
     {
@@ -2857,7 +2811,7 @@ public:
         }
 
         auto const& id = *get<id_expression_node::unqualified>(n.id);
-        auto lookup = source_order_name_lookup(id);
+        auto lookup = source_order_name_lookup(current_names, id);
 
         if (
             !lookup

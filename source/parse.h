@@ -22,6 +22,7 @@
 #include <memory>
 #include <variant>
 #include <iostream>
+#include <span>
 
 
 namespace cpp2 {
@@ -5144,6 +5145,53 @@ auto pretty_print_visualize(translation_unit_node const& n)
     return ret;
 }
 
+
+struct active_using_declaration {
+    token const* identifier = {};
+
+    explicit active_using_declaration(using_statement_node const& n) {
+      if (auto id = get_if<id_expression_node::qualified>(&n.id->id)) {
+          identifier = (*id)->ids.back().id->identifier;
+      }
+    }
+};
+
+using source_order_name_lookup_res =
+    std::optional<std::variant<declaration_node const*, active_using_declaration>>;
+
+using current_names_span = std::span<const source_order_name_lookup_res::value_type>;
+
+auto source_order_name_lookup(current_names_span current_names, unqualified_id_node const& id)
+    -> source_order_name_lookup_res
+{
+    for (
+        auto first = current_names.rbegin(), last = current_names.rend() - 1;
+        first != last;
+        ++first
+        )
+    {
+        if (
+            auto decl = get_if<declaration_node const*>(&*first);
+            decl
+            && *decl
+            && (*decl)->has_name(*id.identifier)
+            )
+        {
+            return *decl;
+        }
+        else if (
+            auto using_ = get_if<active_using_declaration>(&*first);
+            using_
+            && using_->identifier
+            && *using_->identifier == *id.identifier
+            )
+        {
+            return *using_;
+        }
+    }
+
+    return {};
+}
 
 //-----------------------------------------------------------------------
 //
