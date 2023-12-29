@@ -5146,6 +5146,52 @@ auto pretty_print_visualize(translation_unit_node const& n)
 }
 
 
+// Consider moving these `stack` functions to `common.h` to enable more general use.
+
+template<typename T>
+auto stack_value(
+    T& var,
+    std::type_identity_t<T> const& value
+)
+    -> auto
+{
+    return finally([&var, old = std::exchange(var, value)]() {
+        var = old;
+    });
+}
+
+template<typename T>
+auto stack_element(
+    std::vector<T>& cont,
+    std::type_identity_t<T> const& value
+)
+    -> auto
+{
+    cont.push_back(value);
+    return finally([&]{ cont.pop_back(); });
+}
+
+template<typename T>
+auto stack_size(std::vector<T>& cont)
+    -> auto
+{
+    return finally([&, size = cont.size()]{ cont.resize(size); });
+}
+
+template<typename T>
+auto stack_size_if(
+    std::vector<T>& cont,
+    bool cond
+)
+    -> std::optional<decltype(stack_size(cont))>
+{
+    if (cond) {
+        return stack_size(cont);
+    }
+    return {};
+}
+
+
 struct active_using_declaration {
     token const* identifier = {};
 
@@ -5226,8 +5272,12 @@ class parser
         }
     };
 
-    //  Keep a stack of currently active declarations (still being parsed)
-    std::vector<declaration_node*> current_declarations = { nullptr };
+    //  Stack of the currently active nested declarations we're inside (still being parsed)
+    std::vector<declaration_node*> current_declarations = { {} };
+
+    //  Stack of the currently active names for source order name lookup:
+    //  Like 'current_declarations' + also parameters and using declarations
+    std::vector<source_order_name_lookup_res::value_type> current_names = { {} };
 
     struct current_declarations_stack_guard
     {
@@ -7309,6 +7359,10 @@ private:
         }
         next();
 
+        if (!n->for_namespace) {
+            current_names.push_back(active_using_declaration{*n});
+        }
+
         return n;
     }
 
@@ -7345,6 +7399,8 @@ private:
 
         auto n = std::make_unique<statement_node>(compound_parent);
 
+        auto guard_parameters = stack_size_if(current_names, /*bool(n->parameters)*/ true);
+
         //  If a parameter list is allowed here, try to parse one
         if (parameters_allowed) {
             n->parameters = parameter_declaration_list(false, true, false, true);
@@ -7361,6 +7417,9 @@ private:
                     }
                 }
             }
+        }
+        if (!n->parameters) {
+            guard_parameters.reset();
         }
 
         //  Now handle the rest of the statement
@@ -7700,6 +7759,8 @@ private:
                     false, tok->position());
             }
         }
+
+        current_names.push_back(&*n->declaration);
         return n;
     }
 
@@ -8223,6 +8284,9 @@ private:
 
         auto guard2 = current_declarations_stack_guard(this, n.get());
 
+        current_names.push_back(&*n);
+        auto guard_function = stack_size_if(current_names, /*n->is_function()*/ true);
+
         //  Next is an an optional type
 
         auto deduced_type = false;
@@ -8255,7 +8319,13 @@ private:
         }
 
         //  Or a function type, declaring a function - and tell the function whether it's in a user-defined type
-        else if (auto t = function_type(n.get(), named))
+        else if (auto t = function_type(n.get(), named);
+                 t
+                 || (
+                     guard_function.reset(),
+                     false
+                     )
+                 )
         {
             n->type = std::move(t);
             assert (n->is_function());

@@ -2498,7 +2498,8 @@ public:
 
         if (n.for_namespace) {
             printer.print_cpp2(" namespace", n.position());
-        } else {
+        }
+        else {
             current_names.push_back(active_using_declaration{n});
         }
 
@@ -3923,51 +3924,6 @@ public:
         }
     }
 
-
-    // Consider moving these `stack` functions to `common.h` to enable more general use.
-
-    template<typename T>
-    auto stack_value(
-        T& var,
-        std::type_identity_t<T> const& value
-    )
-        -> auto
-    {
-        return finally([&var, old = std::exchange(var, value)]() {
-            var = old;
-        });
-    }
-
-    template<typename T>
-    auto stack_element(
-        std::vector<T>& cont,
-        std::type_identity_t<T> const& value
-    )
-        -> auto
-    {
-        cont.push_back(value);
-        return finally([&]{ cont.pop_back(); });
-    }
-
-    template<typename T>
-    auto stack_size(std::vector<T>& cont)
-        -> auto
-    {
-        return finally([&, size = cont.size()]{ cont.resize(size); });
-    }
-
-    template<typename T>
-    auto stack_size_if(
-        std::vector<T>& cont,
-        bool cond
-    )
-        -> std::optional<decltype(stack_size(cont))>
-    {
-        if (cond) {
-            return stack_size(cont);
-        }
-        return {};
-    }
 
     //-----------------------------------------------------------------------
     //
