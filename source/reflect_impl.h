@@ -10,15 +10,15 @@
 
 #line 1 "reflect_impl.h2"
 
-#line 23 "reflect_impl.h2"
+#line 238 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 35 "reflect_impl.h2"
+#line 250 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 244 "reflect_impl.h2"
+#line 462 "reflect_impl.h2"
 }
 
 }
@@ -44,16 +44,232 @@ class compiler_services_data;
 //  Reflection and meta
 //===========================================================================
 
-#include "reflect_impl_load_metafunction.h"
-
 #include "parse.h"
+#include <cstdlib>
+#include <functional>
+#include <utility>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#else
+#include <dlfcn.h>
+#endif // _WIN32
 
-#line 23 "reflect_impl.h2"
+namespace cpp2::meta {
+
+class dll
+{
+public:
+    dll(std::string const& path)
+    {
+#ifdef _WIN32
+        handle_ = static_cast<void*>(LoadLibraryA(path.c_str()));
+#else
+        handle_ = static_cast<void*>(dlopen(path.c_str(), RTLD_NOW|RTLD_LOCAL));
+#endif // _WIN32
+        if(!handle_) {
+            Default.report_violation(("failed to load DLL '" + path + "': " + get_last_error()).c_str());
+        }
+    }
+
+    ~dll() noexcept
+    {
+#ifdef _WIN32
+        FreeLibrary(static_cast<HMODULE>(handle_));
+#else
+        dlclose(handle_);
+#endif // _WIN32
+    }
+
+    // Uncopyable
+    dll(dll const&) = delete;
+    auto operator=(dll const&) -> dll& = delete;
+    // Unmovable
+    dll(dll&&) = delete;
+    auto operator=(dll&&) -> dll& = delete;
+
+    template<typename T>
+    auto get_alias(std::string const& name) noexcept -> T*
+    {
+#ifdef _WIN32
+        auto symbol = GetProcAddress(static_cast<HMODULE>(handle_), name.c_str());
+#else
+        auto symbol = dlsym(handle_, name.c_str());
+        if(!symbol)
+        {
+            //  Some platforms export with additional underscore, so try that
+            auto const us_name = "_" + name;
+            symbol = dlsym(handle_, us_name.c_str());
+        }
+#endif // _WIN32
+        return function_cast<T*>(symbol);
+    }
+private:
+    void* handle_ = nullptr;
+
+    //  Properly convert the function pointer retrieved from GetProcAddress when building under mingw
+    template<typename T>
+    static auto function_cast(auto ptr) noexcept -> T
+    {
+        using generic_function_ptr = void (*)();
+        return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
+    }
+
+    static auto get_last_error() noexcept -> std::string
+    {
+#ifdef _WIN32
+        DWORD errorMessageID = GetLastError();
+        if(errorMessageID == 0) {
+            return {}; //  No error message has been recorded
+        }
+        LPSTR messageBuffer = nullptr;
+        auto size = FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            errorMessageID,
+            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+            (LPSTR)&messageBuffer,
+            0,
+            nullptr
+        );
+        std::string message(messageBuffer, unsafe_narrow<std::size_t>(size));
+        LocalFree(messageBuffer);
+        return message;
+#else
+        return std::string{dlerror()};
+#endif // _WIN32
+    }
+
+};
+
+
+struct library
+{
+    std::string_view name;
+    std::vector<std::string> symbols;
+};
+
+constexpr std::string_view symbol_prefix    = "cpp2_metafunction_";
+constexpr std::string_view symbols_accessor = "cpp2_metafunction_get_symbol_names";
+
+//  Load Cpp2 libraries with metafunctions by opening DLL with the OS API
+//
+//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
+//  is read and interpreted as ':'-separated Cpp2 metafunction library paths
+std::span<library> get_reachable_metafunction_symbols()
+{
+    static std::vector<library> res = []{
+        std::vector<library> res;
+
+        // FIXME: On Windows, using this approach with the system apis not set to utf8, will
+        // break if a metafunction library contains unicode codepoints in its name, a proper
+        // way to handle this would be to use _wgetenv and use wchar_t strings for the dll opening
+        // function
+        auto cpp1_libraries_cstr = std::getenv("CPPFRONT_METAFUNCTION_LIBRARIES");
+        if (
+            !cpp1_libraries_cstr
+            || cpp1_libraries_cstr[0] == '\0'
+            )
+        {
+            return res;
+        }
+
+        auto cpp1_libraries = std::string_view{cpp1_libraries_cstr};
+        while (!cpp1_libraries.empty())
+        {
+            auto colon = cpp1_libraries.find(':');
+            auto lib_path = cpp1_libraries.substr(0, colon);
+            cpp1_libraries.remove_prefix(lib_path.size() + unsigned(colon != lib_path.npos));
+
+            auto report_invalid_symbols_accessor = [&](std::string const& what) {
+                Default.report_violation(
+                    ("Cpp2 metafunction symbols accesor " + what + " (in '" + std::string{lib_path} + "')").c_str()
+                );
+            };
+            auto lib = std::make_shared<dll>(std::string(lib_path));
+
+            if (auto* get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor}))
+            {
+                auto& symbols = res.emplace_back(lib_path).symbols;
+                auto c_strings = get_symbols();
+                if (!c_strings || !*c_strings) {
+                    report_invalid_symbols_accessor("returns no symbols");
+                }
+
+                for (; *c_strings; ++c_strings) {
+                    auto symbol = symbols.emplace_back(*c_strings);
+                    if (!symbol.starts_with(symbol_prefix)) {
+                        report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
+                    }
+                }
+            }
+            else
+            {
+                report_invalid_symbols_accessor("is missing");
+            }
+        }
+
+        return res;
+    }();
+
+    return res;
+}
+
+
+struct lookup_res {
+    std::string_view library;
+    std::string_view symbol;
+    std::string error;
+};
+
+struct load_metafunction_ret {
+    std::function<void(type_declaration&)> metafunction;
+    std::string error;
+};
+
+//  Load Cpp2 metafunction by opening DLL with the OS API
+auto load_metafunction(
+    std::string const& name,
+    std::function<lookup_res(std::string const&)> lookup
+    )
+    -> load_metafunction_ret
+{;
+    auto [lib_path, cpp1_name, error] = lookup(name);
+
+    if (!error.empty()) {
+        return {{}, error};
+    }
+
+    auto lib = std::make_shared<dll>(std::string(lib_path));
+    if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
+    {
+        return {
+            [
+             fun = fun,
+             lib = std::move(lib)
+             ]
+            (type_declaration& t)
+                -> void
+            {
+                fun(static_cast<void*>(&t));
+            },
+            {}
+        };
+    }
+
+    Default.report_violation(("failed to load metafunction '" + name + "' from '" + lib_path + "'").c_str());
+    return {};
+}
+
+}
+
+#line 238 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 28 "reflect_impl.h2"
+#line 243 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -80,10 +296,10 @@ class compiler_services_data
         std::deque<token>* generated_tokens_
     ) -> compiler_services_data;
 
-#line 60 "reflect_impl.h2"
+#line 275 "reflect_impl.h2"
 };
 
-#line 63 "reflect_impl.h2"
+#line 278 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -91,17 +307,18 @@ class compiler_services_data
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
-    auto const& error
+    auto const& error, 
+    auto const& lookup
     ) -> bool;
 
-#line 178 "reflect_impl.h2"
+#line 396 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 244 "reflect_impl.h2"
+#line 462 "reflect_impl.h2"
 }
 
 }
@@ -113,12 +330,12 @@ class compiler_services_data
 
 #line 1 "reflect_impl.h2"
 
-#line 23 "reflect_impl.h2"
+#line 238 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 49 "reflect_impl.h2"
+#line 264 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
@@ -131,11 +348,12 @@ namespace meta {
                 *cpp2::assert_not_null(errors_) }; 
     }
 
-#line 67 "reflect_impl.h2"
+#line 282 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
-    auto const& error
+    auto const& error, 
+    auto const& lookup
     ) -> bool
 
 {
@@ -217,21 +435,23 @@ namespace meta {
         }
         else {
 {
-auto const& load = load_metafunction(name);
+auto const& load = load_metafunction(name, lookup);
 
-#line 152 "reflect_impl.h2"
+#line 368 "reflect_impl.h2"
             if (load.metafunction) {
                 CPP2_UFCS(metafunction)(load, rtype);
             }else {
                 error("unrecognized metafunction name: " + name);
-                error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible");
+                if (CPP2_UFCS(find)(name, "::") == name.npos) {
+                    error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible");
+                }
                 if (!(CPP2_UFCS(empty)(load.error))) {
                     error(load.error);
                 }
                 return false; 
             }
 }
-#line 162 "reflect_impl.h2"
+#line 380 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -247,7 +467,7 @@ auto const& load = load_metafunction(name);
     return true; 
 }
 
-#line 178 "reflect_impl.h2"
+#line 396 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -313,7 +533,7 @@ auto const& load = load_metafunction(name);
     return true; 
 }
 
-#line 244 "reflect_impl.h2"
+#line 462 "reflect_impl.h2"
 }
 
 }

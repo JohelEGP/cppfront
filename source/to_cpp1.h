@@ -1015,6 +1015,7 @@ class cppfront
 {
     std::string              sourcefile;
     std::vector<error_entry> errors;
+    std::vector<std::string> metafunction_symbols;
 
     //  For building
     //
@@ -1528,6 +1529,31 @@ public:
         }
 
         printer.finalize_phase( true );
+
+        //---------------------------------------------------------------------
+        //  Emit the accessor for declared metafunctions
+        //
+        if (!metafunction_symbols.empty())
+        {
+            assert(source.has_cpp2());
+
+            std::string decl;
+            decl += "CPP2_C_API std::type_identity_t<char const**> "
+                  + std::string{meta::symbols_accessor}
+                  + "() {\n";
+            decl += "    static char const* res[] = {\n";
+            auto prefix = "        \"";
+            auto suffix = std::string{"\"\n"};
+            for (auto const& mf: metafunction_symbols) {
+                decl += prefix + mf + suffix;
+                prefix = "        , \"";
+            }
+            decl += "        , nullptr\n"; //  Sentinel element
+            decl += "    };\n";
+            decl += "    return res;\n";
+            decl += "}";
+            printer.print_extra(decl);
+        }
 
         //  Finally, some debug checks
         assert(
@@ -6402,12 +6428,12 @@ public:
                     && printer.get_phase() == positional_printer::phase2_func_defs
                     )
                 {
-                    auto identifier = print_to_string(*n.identifier);
+                    metafunction_symbols.push_back(meta::symbol_prefix + mangle(n));
                     printer.print_extra(
-                        "\nCPP2_C_API void cpp2_metafunction_"
-                        + identifier
+                        "\nCPP2_C_API void "
+                        + metafunction_symbols.back()
                         + "(void* t) { "
-                        + identifier
+                        + print_to_string(*n.identifier)
                         + "(*static_cast<cpp2::meta::type_declaration*>(t));"
                         + " }"
                     );

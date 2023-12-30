@@ -23,6 +23,95 @@
 
 namespace cpp2 {
 
+auto mangle(declaration_node const& n_)
+    -> std::string
+{
+    assert(n_.identifier);
+    assert(n_.identifier->template_arguments().empty());
+    assert(n_.parent_is_namespace());
+
+    std::string res;
+
+    //  Mangle (id length, id) pairs according to
+    //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
+    //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
+    for (auto n = &n_; n; n = n->parent_declaration)
+    {
+        assert(n->identifier);
+        auto id = n->identifier->to_string();
+        res.insert(0, id);
+        res.insert(0, std::to_string(id.size()));
+    }
+
+    return res;
+}
+
+auto demangle(std::string_view s)
+    -> std::string
+{
+    std::string res{};
+
+    //  Demangle (id length, id) pairs according to
+    //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
+    //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
+    while (!s.empty())
+    {
+        auto length = s.substr(0, s.find_first_not_of("0123456789"));
+        s.remove_prefix(length.size());
+        auto id = s.substr(0, unsafe_narrow<unsigned>(std::stoi(std::string{length})));
+        s.remove_prefix(id.size());
+
+        assert(!length.empty());
+        assert(!id.empty());
+
+        res += id;
+        if (!s.empty()) {
+            res += "::";
+        }
+    }
+
+    return res;
+}
+
+auto lookup(
+    std::string const& name,
+    current_names_span current_names
+    )
+    -> meta::lookup_res
+{
+    auto res = meta::lookup_res{};
+    auto libraries = meta::get_reachable_metafunction_symbols();
+
+    (void)current_names;
+
+    //  Unqualified name lookup
+    if (name.find("::") == name.npos)
+    {
+        for (auto&& lib: libraries)
+        {
+            for (std::string_view sym: lib.symbols)
+            {
+                auto dname = demangle(sym.substr(meta::symbol_prefix.size()));
+                if (dname == name) {
+                    return {lib.name, sym, {}};
+                }
+            }
+        }
+    }
+    //  Qualified name lookup
+    else
+    {
+
+    }
+
+    //  Case not yet handled.
+    if (res.library.empty()) {
+        return {{}, {}, "(ICE) metafunction '" + name + "' not found"};
+    }
+    // else
+    return res;
+}
+
 auto parser::apply_type_metafunctions( declaration_node& n )
     -> bool
 {
@@ -35,7 +124,8 @@ auto parser::apply_type_metafunctions( declaration_node& n )
     return apply_metafunctions(
         n,
         rtype,
-        [&](std::string const& msg) { error( msg, false ); }
+        [&](std::string const& msg) { error( msg, false ); },
+        [&](std::string const& name) { return lookup(name, current_names); }
     );
 }
 
