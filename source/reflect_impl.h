@@ -191,14 +191,14 @@ std::span<library> get_reachable_metafunction_symbols()
 
             if (auto* get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor}))
             {
-                auto& symbols = res.emplace_back(lib_path).symbols;
+                res.push_back({lib_path, {}});
                 auto c_strings = get_symbols();
                 if (!c_strings || !*c_strings) {
                     report_invalid_symbols_accessor("returns no symbols");
                 }
 
                 for (; *c_strings; ++c_strings) {
-                    auto symbol = symbols.emplace_back(*c_strings);
+                    auto symbol = res.back().symbols.emplace_back(*c_strings);
                     if (!symbol.starts_with(symbol_prefix)) {
                         report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
                     }
