@@ -1538,9 +1538,9 @@ public:
             assert(source.has_cpp2());
 
             std::string decl;
-            decl += "CPP2_C_API std::type_identity_t<char const**> "
+            decl += "std::type_identity_t<char const**> "
                   + std::string{meta::symbols_accessor}
-                  + "() {\n";
+                  + "_() {\n";
             decl += "    static char const* res[] = {\n";
             auto prefix = "        \"";
             auto suffix = std::string{"\"\n"};
@@ -1551,8 +1551,15 @@ public:
             decl += "        , nullptr\n"; //  Sentinel element
             decl += "    };\n";
             decl += "    return res;\n";
-            decl += "}";
+            decl += "}\n";
             printer.print_extra(decl);
+            printer.print_extra(
+                "CPP2_C_API constexpr auto "
+                + std::string{meta::symbols_accessor}
+                + " = &"
+                + meta::symbols_accessor
+                + "_;"
+            );
         }
 
         //  Finally, some debug checks
@@ -6437,12 +6444,11 @@ public:
                 {
                     metafunction_symbols.push_back(meta::symbol_prefix + mangle(n));
                     printer.print_extra(
-                        "\nCPP2_C_API void "
+                        "\nCPP2_C_API constexpr auto "
                         + metafunction_symbols.back()
-                        + "(void* t) { "
-                        + print_to_string(*n.identifier)
-                        + "(*static_cast<cpp2::meta::type_declaration*>(t));"
-                        + " }"
+                        + " = "
+                        + meta::to_type_metafunction_cast(print_to_string(*n.identifier))
+                        + ";"
                     );
                 }
             }

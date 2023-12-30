@@ -33,6 +33,10 @@ cpp2: namespace = {
 meta: namespace = {
 
 
+to_type_metafunction_cast: (name: std::string_view) -> std::string =
+    "static_cast<void(*)(cpp2::meta::type_declaration&)>((name)$)";
+
+
 //-----------------------------------------------------------------------
 //
 //  expected with diagnostic to return to apply_metafunctions
@@ -98,10 +102,10 @@ public:
     auto operator=(dll&&) -> dll& = delete;
 
     template<typename T>
-    auto get_alias(std::string const& name) noexcept -> T*
+    auto get_alias(std::string const& name) noexcept -> T&
     {
 #ifdef _WIN32
-        auto symbol = GetProcAddress(static_cast<HMODULE>(handle_), name.c_str());
+        auto symbol = reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle_), name.c_str()));
 #else
         auto symbol = dlsym(handle_, name.c_str());
         if(!symbol)
@@ -111,18 +115,13 @@ public:
             symbol = dlsym(handle_, us_name.c_str());
         }
 #endif // _WIN32
-        return function_cast<T*>(symbol);
+        if (!symbol) {
+            Default.report_violation(("failed to load DLL symbol '" + name+ "': " + get_last_error()).c_str());
+        }
+        return **reinterpret_cast<T**>(symbol);
     }
 private:
     void* handle_ = nullptr;
-
-    //  Properly convert the function pointer retrieved from GetProcAddress when building under mingw
-    template<typename T>
-    static auto function_cast(auto ptr) noexcept -> T
-    {
-        using generic_function_ptr = void (*)();
-        return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
-    }
 
     static auto get_last_error() noexcept -> std::string
     {
@@ -197,24 +196,19 @@ std::span<library> get_reachable_metafunction_symbols()
             };
             auto lib = std::make_shared<dll>(std::string(lib_path));
 
-            if (auto* get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor}))
-            {
-                res.push_back({lib_path, {}});
-                auto c_strings = get_symbols();
-                if (!c_strings || !*c_strings) {
-                    report_invalid_symbols_accessor("returns no symbols");
-                }
+            auto get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor});
 
-                for (; *c_strings; ++c_strings) {
-                    auto symbol = res.back().symbols.emplace_back(*c_strings);
-                    if (!symbol.starts_with(symbol_prefix)) {
-                        report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
-                    }
-                }
+            res.push_back({lib_path, {}});
+            auto c_strings = get_symbols();
+            if (!c_strings || !*c_strings) {
+                report_invalid_symbols_accessor("returns no symbols");
             }
-            else
-            {
-                report_invalid_symbols_accessor("is missing");
+
+            for (; *c_strings; ++c_strings) {
+                auto symbol = res.back().symbols.emplace_back(*c_strings);
+                if (!symbol.starts_with(symbol_prefix)) {
+                    report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
+                }
             }
         }
 
@@ -246,24 +240,17 @@ auto load_metafunction(
             auto [lib_path, cpp1_name] = res;
 
             auto lib = std::make_shared<dll>(std::string(lib_path));
-            if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
-            {
-                return load_metafunction_ret{
-                    [
-                     fun = fun,
-                     lib = std::move(lib)
-                     ]
-                    (type_declaration& t)
-                        -> void
-                    {
-                        fun(static_cast<void*>(&t));
-                    }
-                };
-            }
-
-            auto error = diagnostic{"failed to load metafunction '" + name + "' from '" + lib_path + "'"};
-            Default.report_violation(error.value.c_str());
-            return error;
+            return load_metafunction_ret{
+                [
+                 fun = lib->get_alias<void(type_declaration&)>(std::string{cpp1_name}),
+                 lib = std::move(lib)
+                 ]
+                (type_declaration& t)
+                    -> void
+                {
+                    fun(t);
+                }
+            };
         }
     );
 }

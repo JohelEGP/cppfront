@@ -15,28 +15,28 @@ namespace cpp2 {
 
 namespace meta {
 
-#line 41 "reflect_impl.h2"
+#line 45 "reflect_impl.h2"
 class diagnostic;
     
 
-#line 45 "reflect_impl.h2"
+#line 49 "reflect_impl.h2"
 template<typename T> class expected;
     
 
-#line 62 "reflect_impl.h2"
+#line 66 "reflect_impl.h2"
 }
 
 }
 
-#line 274 "reflect_impl.h2"
+#line 261 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 286 "reflect_impl.h2"
+#line 273 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 498 "reflect_impl.h2"
+#line 485 "reflect_impl.h2"
 }
 
 }
@@ -80,6 +80,9 @@ namespace cpp2 {
 namespace meta {
 
 #line 36 "reflect_impl.h2"
+[[nodiscard]] auto to_type_metafunction_cast(cpp2::in<std::string_view> name) -> std::string;
+
+#line 40 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  expected with diagnostic to return to apply_metafunctions
@@ -91,12 +94,12 @@ class diagnostic {
 
 template<typename T> class expected {
 
-#line 49 "reflect_impl.h2"
+#line 53 "reflect_impl.h2"
     public: expected(T const& v);
-#line 49 "reflect_impl.h2"
+#line 53 "reflect_impl.h2"
     public: auto operator=(T const& v) -> expected& ;
     public: expected(cpp2::in<diagnostic> u);
-#line 50 "reflect_impl.h2"
+#line 54 "reflect_impl.h2"
     public: auto operator=(cpp2::in<diagnostic> u) -> expected& ;
 
     public: template<typename F> [[nodiscard]] auto and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>;
@@ -119,7 +122,7 @@ public: expected(expected&& that) noexcept;
 public: auto operator=(expected const& that) -> expected& ;
 public: auto operator=(expected&& that) noexcept -> expected& ;
 
-#line 60 "reflect_impl.h2"
+#line 64 "reflect_impl.h2"
 };
 
 }
@@ -161,10 +164,10 @@ public:
     auto operator=(dll&&) -> dll& = delete;
 
     template<typename T>
-    auto get_alias(std::string const& name) noexcept -> T*
+    auto get_alias(std::string const& name) noexcept -> T&
     {
 #ifdef _WIN32
-        auto symbol = GetProcAddress(static_cast<HMODULE>(handle_), name.c_str());
+        auto symbol = reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle_), name.c_str()));
 #else
         auto symbol = dlsym(handle_, name.c_str());
         if(!symbol)
@@ -174,18 +177,13 @@ public:
             symbol = dlsym(handle_, us_name.c_str());
         }
 #endif // _WIN32
-        return function_cast<T*>(symbol);
+        if (!symbol) {
+            Default.report_violation(("failed to load DLL symbol '" + name+ "': " + get_last_error()).c_str());
+        }
+        return **reinterpret_cast<T**>(symbol);
     }
 private:
     void* handle_ = nullptr;
-
-    //  Properly convert the function pointer retrieved from GetProcAddress when building under mingw
-    template<typename T>
-    static auto function_cast(auto ptr) noexcept -> T
-    {
-        using generic_function_ptr = void (*)();
-        return reinterpret_cast<T>(reinterpret_cast<generic_function_ptr>(ptr));
-    }
 
     static auto get_last_error() noexcept -> std::string
     {
@@ -260,24 +258,19 @@ std::span<library> get_reachable_metafunction_symbols()
             };
             auto lib = std::make_shared<dll>(std::string(lib_path));
 
-            if (auto* get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor}))
-            {
-                res.push_back({lib_path, {}});
-                auto c_strings = get_symbols();
-                if (!c_strings || !*c_strings) {
-                    report_invalid_symbols_accessor("returns no symbols");
-                }
+            auto get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor});
 
-                for (; *c_strings; ++c_strings) {
-                    auto symbol = res.back().symbols.emplace_back(*c_strings);
-                    if (!symbol.starts_with(symbol_prefix)) {
-                        report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
-                    }
-                }
+            res.push_back({lib_path, {}});
+            auto c_strings = get_symbols();
+            if (!c_strings || !*c_strings) {
+                report_invalid_symbols_accessor("returns no symbols");
             }
-            else
-            {
-                report_invalid_symbols_accessor("is missing");
+
+            for (; *c_strings; ++c_strings) {
+                auto symbol = res.back().symbols.emplace_back(*c_strings);
+                if (!symbol.starts_with(symbol_prefix)) {
+                    report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
+                }
             }
         }
 
@@ -309,36 +302,29 @@ auto load_metafunction(
             auto [lib_path, cpp1_name] = res;
 
             auto lib = std::make_shared<dll>(std::string(lib_path));
-            if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
-            {
-                return load_metafunction_ret{
-                    [
-                     fun = fun,
-                     lib = std::move(lib)
-                     ]
-                    (type_declaration& t)
-                        -> void
-                    {
-                        fun(static_cast<void*>(&t));
-                    }
-                };
-            }
-
-            auto error = diagnostic{"failed to load metafunction '" + name + "' from '" + lib_path + "'"};
-            Default.report_violation(error.value.c_str());
-            return error;
+            return load_metafunction_ret{
+                [
+                 fun = lib->get_alias<void(type_declaration&)>(std::string{cpp1_name}),
+                 lib = std::move(lib)
+                 ]
+                (type_declaration& t)
+                    -> void
+                {
+                    fun(t);
+                }
+            };
         }
     );
 }
 
 }
 
-#line 274 "reflect_impl.h2"
+#line 261 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 279 "reflect_impl.h2"
+#line 266 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -365,10 +351,10 @@ class compiler_services_data
         std::deque<token>* generated_tokens_
     ) -> compiler_services_data;
 
-#line 311 "reflect_impl.h2"
+#line 298 "reflect_impl.h2"
 };
 
-#line 314 "reflect_impl.h2"
+#line 301 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -380,14 +366,14 @@ class compiler_services_data
     auto const& lookup
     ) -> bool;
 
-#line 432 "reflect_impl.h2"
+#line 419 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 498 "reflect_impl.h2"
+#line 485 "reflect_impl.h2"
 }
 
 }
@@ -405,22 +391,26 @@ namespace cpp2 {
 
 namespace meta {
 
-#line 49 "reflect_impl.h2"
+#line 36 "reflect_impl.h2"
+[[nodiscard]] auto to_type_metafunction_cast(cpp2::in<std::string_view> name) -> std::string { 
+    return "static_cast<void(*)(cpp2::meta::type_declaration&)>(" + cpp2::to_string(name) + ")";  }
+
+#line 53 "reflect_impl.h2"
     template <typename T> expected<T>::expected(T const& v) { set_value(v);  }
-#line 49 "reflect_impl.h2"
+#line 53 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(T const& v) -> expected&  { 
                                            _storage = {};
                                            _discriminator = -1; set_value(v);
                                            return *this;  }
-#line 50 "reflect_impl.h2"
+#line 54 "reflect_impl.h2"
     template <typename T> expected<T>::expected(cpp2::in<diagnostic> u) { set_error(u);  }
-#line 50 "reflect_impl.h2"
+#line 54 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(cpp2::in<diagnostic> u) -> expected&  { 
                                                     _storage = {};
                                                     _discriminator = -1; set_error(u);
                                                     return *this;  }
 
-#line 52 "reflect_impl.h2"
+#line 56 "reflect_impl.h2"
     template <typename T> template<typename F> [[nodiscard]] auto expected<T>::and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>{
         if (is_value()) {
             return f(value()); 
@@ -480,17 +470,17 @@ template <typename T> expected<T>::expected(expected const& that)
     if (CPP2_UFCS(is_error)(std::move(that))) {set_error(CPP2_UFCS(error)(std::move(that)));}
         return *this;
     }
-#line 62 "reflect_impl.h2"
+#line 66 "reflect_impl.h2"
 }
 
 }
 
-#line 274 "reflect_impl.h2"
+#line 261 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 300 "reflect_impl.h2"
+#line 287 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
@@ -503,7 +493,7 @@ namespace meta {
                 *cpp2::assert_not_null(errors_) }; 
     }
 
-#line 318 "reflect_impl.h2"
+#line 305 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -592,7 +582,7 @@ namespace meta {
 {
 auto const& load = load_metafunction(name, lookup);
 
-#line 404 "reflect_impl.h2"
+#line 391 "reflect_impl.h2"
             if (CPP2_UFCS(is_value)(load)) {
                 CPP2_UFCS(value)(load)(rtype);
             }else {
@@ -606,7 +596,7 @@ auto const& load = load_metafunction(name, lookup);
                 return false; 
             }
 }
-#line 416 "reflect_impl.h2"
+#line 403 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -622,7 +612,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 432 "reflect_impl.h2"
+#line 419 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -688,7 +678,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 498 "reflect_impl.h2"
+#line 485 "reflect_impl.h2"
 }
 
 }
