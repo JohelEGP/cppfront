@@ -99,7 +99,7 @@ template<typename T> class expected {
 #line 50 "reflect_impl.h2"
     public: auto operator=(cpp2::in<diagnostic> u) -> expected& ;
 
-    public: [[nodiscard]] auto and_then(auto const& f) && -> std::remove_cvref_t<decltype(f(std::declval<T>()))>;
+    public: template<typename F> [[nodiscard]] auto and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>;
     private: cpp2::aligned_storage<cpp2::max(sizeof(T), sizeof(diagnostic)),cpp2::max(alignof(T), alignof(diagnostic))> _storage {}; private: cpp2::i8 _discriminator {-1}; public: [[nodiscard]] auto is_value() const& -> bool;
 public: [[nodiscard]] auto value() const& -> T const&;
 public: [[nodiscard]] auto value() & -> T&;
@@ -421,7 +421,7 @@ namespace meta {
                                                     return *this;  }
 
 #line 52 "reflect_impl.h2"
-    template <typename T> [[nodiscard]] auto expected<T>::and_then(auto const& f) && -> std::remove_cvref_t<decltype(f(std::declval<T>()))>{
+    template <typename T> template<typename F> [[nodiscard]] auto expected<T>::and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>{
         if (is_value()) {
             return f(value()); 
         }
