@@ -10,15 +10,33 @@
 
 #line 1 "reflect_impl.h2"
 
-#line 238 "reflect_impl.h2"
+#line 31 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 250 "reflect_impl.h2"
+#line 41 "reflect_impl.h2"
+class diagnostic;
+    
+
+#line 45 "reflect_impl.h2"
+template<typename T> class expected;
+    
+
+#line 62 "reflect_impl.h2"
+}
+
+}
+
+#line 274 "reflect_impl.h2"
+namespace cpp2 {
+
+namespace meta {
+
+#line 286 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 462 "reflect_impl.h2"
+#line 498 "reflect_impl.h2"
 }
 
 }
@@ -55,6 +73,59 @@ class compiler_services_data;
 #else
 #include <dlfcn.h>
 #endif // _WIN32
+
+#line 31 "reflect_impl.h2"
+namespace cpp2 {
+
+namespace meta {
+
+#line 36 "reflect_impl.h2"
+//-----------------------------------------------------------------------
+//
+//  expected with diagnostic to return to apply_metafunctions
+//
+
+class diagnostic {
+    public: std::string value; 
+};
+
+template<typename T> class expected {
+
+#line 49 "reflect_impl.h2"
+    public: expected(T const& v);
+#line 49 "reflect_impl.h2"
+    public: auto operator=(T const& v) -> expected& ;
+    public: expected(cpp2::in<diagnostic> u);
+#line 50 "reflect_impl.h2"
+    public: auto operator=(cpp2::in<diagnostic> u) -> expected& ;
+
+    public: [[nodiscard]] auto and_then(auto const& f) && -> std::remove_cvref_t<decltype(f(std::declval<T>()))>;
+    private: cpp2::aligned_storage<cpp2::max(sizeof(T), sizeof(diagnostic)),cpp2::max(alignof(T), alignof(diagnostic))> _storage {}; private: cpp2::i8 _discriminator {-1}; public: [[nodiscard]] auto is_value() const& -> bool;
+public: [[nodiscard]] auto value() const& -> T const&;
+public: [[nodiscard]] auto value() & -> T&;
+public: auto set_value(cpp2::in<T> _value) & -> void;
+public: auto set_value(auto&& ..._args) & -> void;
+public: [[nodiscard]] auto is_error() const& -> bool;
+public: [[nodiscard]] auto error() const& -> diagnostic const&;
+public: [[nodiscard]] auto error() & -> diagnostic&;
+public: auto set_error(cpp2::in<diagnostic> _value) & -> void;
+public: auto set_error(auto&& ..._args) & -> void;
+private: auto _destroy() & -> void;
+public: ~expected() noexcept;
+public: explicit expected();
+public: expected(expected const& that);
+
+public: expected(expected&& that) noexcept;
+public: auto operator=(expected const& that) -> expected& ;
+public: auto operator=(expected&& that) noexcept -> expected& ;
+
+#line 60 "reflect_impl.h2"
+};
+
+}
+
+}
+
 
 namespace cpp2::meta {
 
@@ -220,56 +291,54 @@ std::span<library> get_reachable_metafunction_symbols()
 struct lookup_res {
     std::string_view library;
     std::string_view symbol;
-    std::string error;
 };
 
-struct load_metafunction_ret {
-    std::function<void(type_declaration&)> metafunction;
-    std::string error;
-};
+using load_metafunction_ret = std::function<void(type_declaration&)>;
 
 //  Load Cpp2 metafunction by opening DLL with the OS API
 auto load_metafunction(
     std::string const& name,
-    std::function<lookup_res(std::string const&)> lookup
+    std::function<expected<lookup_res>(std::string const&)> lookup
     )
-    -> load_metafunction_ret
-{;
-    auto [lib_path, cpp1_name, error] = lookup(name);
+    -> expected<load_metafunction_ret>
+{
+    return lookup(name).and_then(
+        [&](lookup_res res)
+            -> expected<load_metafunction_ret>
+        {
+            auto [lib_path, cpp1_name] = res;
 
-    if (!error.empty()) {
-        return {{}, error};
-    }
-
-    auto lib = std::make_shared<dll>(std::string(lib_path));
-    if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
-    {
-        return {
-            [
-             fun = fun,
-             lib = std::move(lib)
-             ]
-            (type_declaration& t)
-                -> void
+            auto lib = std::make_shared<dll>(std::string(lib_path));
+            if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
             {
-                fun(static_cast<void*>(&t));
-            },
-            {}
-        };
-    }
+                return load_metafunction_ret{
+                    [
+                     fun = fun,
+                     lib = std::move(lib)
+                     ]
+                    (type_declaration& t)
+                        -> void
+                    {
+                        fun(static_cast<void*>(&t));
+                    }
+                };
+            }
 
-    Default.report_violation(("failed to load metafunction '" + name + "' from '" + lib_path + "'").c_str());
-    return {};
+            auto error = diagnostic("failed to load metafunction '" + name + "' from '" + lib_path + "'");
+            Default.report_violation(error.value.c_str());
+            return error;
+        }
+    );
 }
 
 }
 
-#line 238 "reflect_impl.h2"
+#line 274 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 243 "reflect_impl.h2"
+#line 279 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -296,10 +365,10 @@ class compiler_services_data
         std::deque<token>* generated_tokens_
     ) -> compiler_services_data;
 
-#line 275 "reflect_impl.h2"
+#line 311 "reflect_impl.h2"
 };
 
-#line 278 "reflect_impl.h2"
+#line 314 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -311,17 +380,18 @@ class compiler_services_data
     auto const& lookup
     ) -> bool;
 
-#line 396 "reflect_impl.h2"
+#line 432 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 462 "reflect_impl.h2"
+#line 498 "reflect_impl.h2"
 }
 
 }
+
 
 #include "cpp2reflect.hpp"
 
@@ -330,12 +400,97 @@ class compiler_services_data
 
 #line 1 "reflect_impl.h2"
 
-#line 238 "reflect_impl.h2"
+#line 31 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 264 "reflect_impl.h2"
+#line 49 "reflect_impl.h2"
+    template <typename T> expected<T>::expected(T const& v) { set_value(v);  }
+#line 49 "reflect_impl.h2"
+    template <typename T> auto expected<T>::operator=(T const& v) -> expected&  { 
+                                           _storage = {};
+                                           _discriminator = -1; set_value(v);
+                                           return *this;  }
+#line 50 "reflect_impl.h2"
+    template <typename T> expected<T>::expected(cpp2::in<diagnostic> u) { set_error(u);  }
+#line 50 "reflect_impl.h2"
+    template <typename T> auto expected<T>::operator=(cpp2::in<diagnostic> u) -> expected&  { 
+                                                    _storage = {};
+                                                    _discriminator = -1; set_error(u);
+                                                    return *this;  }
+
+#line 52 "reflect_impl.h2"
+    template <typename T> [[nodiscard]] auto expected<T>::and_then(auto const& f) && -> std::remove_cvref_t<decltype(f(std::declval<T>()))>{
+        if (is_value()) {
+            return f(value()); 
+        }
+        else {
+            return { error() }; 
+        }
+    }
+
+
+
+    template <typename T> [[nodiscard]] auto expected<T>::is_value() const& -> bool { return _discriminator == 0; }
+template <typename T> [[nodiscard]] auto expected<T>::value() const& -> T const& { 
+                                                 if (cpp2::Default.has_handler() && !(is_value()) ) { cpp2::Default.report_violation(""); }return *cpp2::assert_not_null(reinterpret_cast<T const*>(&_storage)); }
+template <typename T> [[nodiscard]] auto expected<T>::value() & -> T& { 
+                                                       if (cpp2::Default.has_handler() && !(is_value()) ) { cpp2::Default.report_violation(""); }return *cpp2::assert_not_null(reinterpret_cast<T*>(&_storage)); }
+template <typename T> auto expected<T>::set_value(cpp2::in<T> _value) & -> void{if (!(is_value())) {_destroy();std::construct_at(reinterpret_cast<T*>(&_storage), _value);}else {*cpp2::assert_not_null(reinterpret_cast<T*>(&_storage)) = _value;}_discriminator = 0;}
+template <typename T> auto expected<T>::set_value(auto&& ..._args) & -> void{if (!(is_value())) {_destroy();std::construct_at(reinterpret_cast<T*>(&_storage), _args...);}else {*cpp2::assert_not_null(reinterpret_cast<T*>(&_storage)) = T{_args...};}_discriminator = 0;}
+template <typename T> [[nodiscard]] auto expected<T>::is_error() const& -> bool { return _discriminator == 1; }
+template <typename T> [[nodiscard]] auto expected<T>::error() const& -> diagnostic const& { 
+                                                          if (cpp2::Default.has_handler() && !(is_error()) ) { cpp2::Default.report_violation(""); }return *cpp2::assert_not_null(reinterpret_cast<diagnostic const*>(&_storage)); }
+template <typename T> [[nodiscard]] auto expected<T>::error() & -> diagnostic& { 
+                                                                if (cpp2::Default.has_handler() && !(is_error()) ) { cpp2::Default.report_violation(""); }return *cpp2::assert_not_null(reinterpret_cast<diagnostic*>(&_storage)); }
+template <typename T> auto expected<T>::set_error(cpp2::in<diagnostic> _value) & -> void{if (!(is_error())) {_destroy();std::construct_at(reinterpret_cast<diagnostic*>(&_storage), _value);}else {*cpp2::assert_not_null(reinterpret_cast<diagnostic*>(&_storage)) = _value;}_discriminator = 1;}
+template <typename T> auto expected<T>::set_error(auto&& ..._args) & -> void{if (!(is_error())) {_destroy();std::construct_at(reinterpret_cast<diagnostic*>(&_storage), _args...);}else {*cpp2::assert_not_null(reinterpret_cast<diagnostic*>(&_storage)) = diagnostic{_args...};}_discriminator = 1;}
+template <typename T> auto expected<T>::_destroy() & -> void{
+    if (_discriminator == 0) {std::destroy_at(reinterpret_cast<T*>(&_storage));}
+    if (_discriminator == 1) {std::destroy_at(reinterpret_cast<diagnostic*>(&_storage));}
+    _discriminator = -1;
+    }
+
+    template <typename T> expected<T>::~expected() noexcept{_destroy();}
+template <typename T> expected<T>::expected(){}
+template <typename T> expected<T>::expected(expected const& that)
+        : _storage{  }
+        , _discriminator{ -1 }{
+    if (CPP2_UFCS(is_value)(that)) {set_value(CPP2_UFCS(value)(that));}
+    if (CPP2_UFCS(is_error)(that)) {set_error(CPP2_UFCS(error)(that));}
+    }
+
+
+    template <typename T> expected<T>::expected(expected&& that) noexcept
+        : _storage{  }
+        , _discriminator{ -1 }{
+    if (CPP2_UFCS(is_value)(std::move(that))) {set_value(CPP2_UFCS(value)(std::move(that)));}
+    if (CPP2_UFCS(is_error)(std::move(that))) {set_error(CPP2_UFCS(error)(std::move(that)));}
+    }
+
+    template <typename T> auto expected<T>::operator=(expected const& that) -> expected& {
+    if (CPP2_UFCS(is_value)(that)) {set_value(CPP2_UFCS(value)(that));}
+    if (CPP2_UFCS(is_error)(that)) {set_error(CPP2_UFCS(error)(that));}
+        return *this;
+    }
+
+    template <typename T> auto expected<T>::operator=(expected&& that) noexcept -> expected& {
+    if (CPP2_UFCS(is_value)(std::move(that))) {set_value(CPP2_UFCS(value)(std::move(that)));}
+    if (CPP2_UFCS(is_error)(std::move(that))) {set_error(CPP2_UFCS(error)(std::move(that)));}
+        return *this;
+    }
+#line 62 "reflect_impl.h2"
+}
+
+}
+
+#line 274 "reflect_impl.h2"
+namespace cpp2 {
+
+namespace meta {
+
+#line 300 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
@@ -348,7 +503,7 @@ namespace meta {
                 *cpp2::assert_not_null(errors_) }; 
     }
 
-#line 282 "reflect_impl.h2"
+#line 318 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -437,21 +592,21 @@ namespace meta {
 {
 auto const& load = load_metafunction(name, lookup);
 
-#line 368 "reflect_impl.h2"
-            if (load.metafunction) {
-                CPP2_UFCS(metafunction)(load, rtype);
+#line 404 "reflect_impl.h2"
+            if (CPP2_UFCS(is_value)(load)) {
+                CPP2_UFCS(value)(load)(rtype);
             }else {
                 error("unrecognized metafunction name: " + name);
                 if (CPP2_UFCS(find)(name, "::") == name.npos) {
                     error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible");
                 }
-                if (!(CPP2_UFCS(empty)(load.error))) {
-                    error(load.error);
+                if (!(CPP2_UFCS(empty)(CPP2_UFCS(error)(load).value))) {
+                    error(CPP2_UFCS(error)(load).value);
                 }
                 return false; 
             }
 }
-#line 380 "reflect_impl.h2"
+#line 416 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -467,7 +622,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 396 "reflect_impl.h2"
+#line 432 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -533,7 +688,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 462 "reflect_impl.h2"
+#line 498 "reflect_impl.h2"
 }
 
 }

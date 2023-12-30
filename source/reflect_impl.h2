@@ -27,6 +27,43 @@
 #include <dlfcn.h>
 #endif // _WIN32
 
+
+cpp2: namespace = {
+
+meta: namespace = {
+
+
+//-----------------------------------------------------------------------
+//
+//  expected with diagnostic to return to apply_metafunctions
+//
+
+diagnostic: @struct type = {
+    value: std::string;
+}
+
+expected: @union <T> type = {
+    value: T;
+    error: diagnostic;
+
+    operator=: (implicit out this, v: T) = set_value(v);
+    operator=: (implicit out this, u: diagnostic) = set_error(u);
+
+    and_then: (move this, f) -> std::remove_cvref_t<decltype(f(std::declval<T>()))> = {
+        if is_value() {
+            return f(value());
+        }
+        else {
+            return (error());
+        }
+    }
+}
+
+}
+
+}
+
+
 namespace cpp2::meta {
 
 class dll
@@ -191,49 +228,48 @@ std::span<library> get_reachable_metafunction_symbols()
 struct lookup_res {
     std::string_view library;
     std::string_view symbol;
-    std::string error;
 };
 
-struct load_metafunction_ret {
-    std::function<void(type_declaration&)> metafunction;
-    std::string error;
-};
+using load_metafunction_ret = std::function<void(type_declaration&)>;
 
 //  Load Cpp2 metafunction by opening DLL with the OS API
 auto load_metafunction(
     std::string const& name,
-    std::function<lookup_res(std::string const&)> lookup
+    std::function<expected<lookup_res>(std::string const&)> lookup
     )
-    -> load_metafunction_ret
-{;
-    auto [lib_path, cpp1_name, error] = lookup(name);
+    -> expected<load_metafunction_ret>
+{
+    return lookup(name).and_then(
+        [&](lookup_res res)
+            -> expected<load_metafunction_ret>
+        {
+            auto [lib_path, cpp1_name] = res;
 
-    if (!error.empty()) {
-        return {{}, error};
-    }
-
-    auto lib = std::make_shared<dll>(std::string(lib_path));
-    if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
-    {
-        return {
-            [
-             fun = fun,
-             lib = std::move(lib)
-             ]
-            (type_declaration& t)
-                -> void
+            auto lib = std::make_shared<dll>(std::string(lib_path));
+            if (auto* fun = lib->get_alias<void(void*)>(std::string{cpp1_name}))
             {
-                fun(static_cast<void*>(&t));
-            },
-            {}
-        };
-    }
+                return load_metafunction_ret{
+                    [
+                     fun = fun,
+                     lib = std::move(lib)
+                     ]
+                    (type_declaration& t)
+                        -> void
+                    {
+                        fun(static_cast<void*>(&t));
+                    }
+                };
+            }
 
-    Default.report_violation(("failed to load metafunction '" + name + "' from '" + lib_path + "'").c_str());
-    return {};
+            auto error = diagnostic("failed to load metafunction '" + name + "' from '" + lib_path + "'");
+            Default.report_violation(error.value.c_str());
+            return error;
+        }
+    );
 }
 
 }
+
 
 cpp2: namespace = {
 
@@ -365,15 +401,15 @@ apply_metafunctions: (
         }
         else {
             (load := load_metafunction( name, lookup ))
-            if load.metafunction {
-                load.metafunction( rtype );
+            if load.is_value() {
+                load.value()( rtype );
             } else {
                 error( "unrecognized metafunction name: " + name );
                 if name.find("::") == name.npos {
                     error( "currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible" );
                 }
-                if !load.error.empty() {
-                    error( load.error );
+                if !load.error().value.empty() {
+                    error( load.error().value );
                 }
                 return false;
             }
@@ -462,5 +498,6 @@ apply_metafunctions: (
 }
 
 }
+
 
 #include "cpp2reflect.hpp"

@@ -77,7 +77,7 @@ auto lookup(
     std::string const& name,
     current_names_span current_names
     )
-    -> meta::lookup_res
+    -> meta::expected<meta::lookup_res>
 {
     auto res = meta::lookup_res{};
     auto libraries = meta::get_reachable_metafunction_symbols();
@@ -93,7 +93,7 @@ auto lookup(
             {
                 auto dname = demangle(sym.substr(meta::symbol_prefix.size()));
                 if (dname == name) {
-                    return {lib.name, sym, {}};
+                    return {{lib.name, sym}};
                 }
             }
         }
@@ -106,7 +106,7 @@ auto lookup(
 
     //  Case not yet handled.
     if (res.library.empty()) {
-        return {{}, {}, "(ICE) metafunction '" + name + "' not found"};
+        return meta::diagnostic("(ICE) metafunction '" + name + "' not found");
     }
     // else
     return res;
