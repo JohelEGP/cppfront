@@ -5523,6 +5523,13 @@ public:
         }
 
 
+        if (printer.get_phase() == printer.phase1_type_defs_func_decls) {
+            for (auto&& check : n.metafunction_lookup_checks) {
+                printer.print_extra(check);
+            }
+        }
+
+
         //  If this is a function that has multiple return values,
         //  first we need to emit the struct that contains the returns
         if (

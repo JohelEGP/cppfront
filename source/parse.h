@@ -2552,6 +2552,7 @@ struct declaration_node
     > type;
 
     std::vector<std::unique_ptr<id_expression_node>> metafunctions;
+    std::vector<std::string>                         metafunction_lookup_checks;
     std::unique_ptr<parameter_declaration_list_node> template_parameters;
     source_position                                  requires_pos = {};
     std::unique_ptr<logical_or_expression_node>      requires_clause_expression;

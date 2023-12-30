@@ -73,13 +73,18 @@ auto demangle(std::string_view s)
     return res;
 }
 
+struct lookup_res {
+    meta::lookup_res meta_res;
+    std::string demangled_name;
+};
+
 auto lookup(
     std::string const& name,
     current_names_span current_names
     )
-    -> meta::expected<meta::lookup_res>
+    -> meta::expected<lookup_res>
 {
-    auto res = meta::lookup_res{};
+    auto res = lookup_res{};
     auto libraries = meta::get_reachable_metafunction_symbols();
 
     (void)current_names;
@@ -93,7 +98,7 @@ auto lookup(
             {
                 auto dname = demangle(sym.substr(meta::symbol_prefix.size()));
                 if (dname == name) {
-                    return {{lib.name, sym}};
+                    return {{{lib.name, sym}, std::move(dname)}};
                 }
             }
         }
@@ -105,7 +110,7 @@ auto lookup(
     }
 
     //  Case not yet handled.
-    if (res.library.empty()) {
+    if (res.meta_res.library.empty()) {
         return meta::diagnostic{"(ICE) metafunction '" + name + "' not found"};
     }
     // else
@@ -125,7 +130,30 @@ auto parser::apply_type_metafunctions( declaration_node& n )
         n,
         rtype,
         [&](std::string const& msg) { error( msg, false ); },
-        [&](std::string const& name) { return lookup(name, current_names); }
+        [&](std::string const& name) {
+            return lookup(name, current_names).and_then(
+                [&](lookup_res res)
+                    -> meta::expected<meta::lookup_res>
+                {
+                    auto to_metafunction = [](std::string name) {
+                        return "static_cast<void(*)(cpp2::meta::type_declaration&)>(" + std::move(name) + ")";
+                    };
+                    auto check = std::string{};
+                    check += "static_assert(";
+                    check += to_metafunction(name);
+                    check += " == ";
+                    check += to_metafunction("::" + std::move(res.demangled_name));
+                    check += ", ";
+                    //  A static_assert doesn't really check that its the evaluated metafunction
+                    //  For that, we would have to load the metafunction symbol at runtime
+                    check += "\"the metafunction name '" + name + "' must be ";
+                    check += "reachable and equal to the one evaluated by cppfront\"";
+                    check += ");\n";
+                    n.metafunction_lookup_checks.push_back(check);
+                    return res.meta_res;
+                }
+            );
+        }
     );
 }
 
