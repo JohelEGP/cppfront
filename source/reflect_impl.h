@@ -324,7 +324,7 @@ auto load_metafunction(
                 };
             }
 
-            auto error = diagnostic("failed to load metafunction '" + name + "' from '" + lib_path + "'");
+            auto error = diagnostic{"failed to load metafunction '" + name + "' from '" + lib_path + "'"};
             Default.report_violation(error.value.c_str());
             return error;
         }
