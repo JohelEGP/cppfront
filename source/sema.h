@@ -106,7 +106,7 @@ auto lookup(
 
     //  Case not yet handled.
     if (res.library.empty()) {
-        return meta::diagnostic("(ICE) metafunction '" + name + "' not found");
+        return meta::diagnostic{"(ICE) metafunction '" + name + "' not found"};
     }
     // else
     return res;
