@@ -15,28 +15,28 @@ namespace cpp2 {
 
 namespace meta {
 
-#line 45 "reflect_impl.h2"
+#line 62 "reflect_impl.h2"
 class diagnostic;
     
 
-#line 49 "reflect_impl.h2"
+#line 66 "reflect_impl.h2"
 template<typename T> class expected;
     
 
-#line 66 "reflect_impl.h2"
+#line 83 "reflect_impl.h2"
 }
 
 }
 
-#line 261 "reflect_impl.h2"
+#line 275 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 273 "reflect_impl.h2"
+#line 287 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 485 "reflect_impl.h2"
+#line 499 "reflect_impl.h2"
 }
 
 }
@@ -82,7 +82,17 @@ namespace meta {
 #line 36 "reflect_impl.h2"
 [[nodiscard]] auto to_type_metafunction_cast(cpp2::in<std::string_view> name) -> std::string;
 
-#line 40 "reflect_impl.h2"
+#line 39 "reflect_impl.h2"
+std::string_view inline constexpr symbol_prefix = "cpp2_metafunction_";
+
+[[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> std::string;
+
+#line 44 "reflect_impl.h2"
+//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
+//  is read and interpreted as the Cpp2 metafunction library path of this invocation
+[[nodiscard]] auto this_symbols_accessor() -> std::string;
+
+#line 57 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  expected with diagnostic to return to apply_metafunctions
@@ -94,12 +104,12 @@ class diagnostic {
 
 template<typename T> class expected {
 
-#line 53 "reflect_impl.h2"
+#line 70 "reflect_impl.h2"
     public: expected(T const& v);
-#line 53 "reflect_impl.h2"
+#line 70 "reflect_impl.h2"
     public: auto operator=(T const& v) -> expected& ;
     public: expected(cpp2::in<diagnostic> u);
-#line 54 "reflect_impl.h2"
+#line 71 "reflect_impl.h2"
     public: auto operator=(cpp2::in<diagnostic> u) -> expected& ;
 
     public: template<typename F> [[nodiscard]] auto and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>;
@@ -122,7 +132,7 @@ public: expected(expected&& that) noexcept;
 public: auto operator=(expected const& that) -> expected& ;
 public: auto operator=(expected&& that) noexcept -> expected& ;
 
-#line 64 "reflect_impl.h2"
+#line 81 "reflect_impl.h2"
 };
 
 }
@@ -219,9 +229,6 @@ struct library
     std::vector<std::string> symbols;
 };
 
-constexpr std::string_view symbol_prefix    = "cpp2_metafunction_";
-constexpr std::string_view symbols_accessor = "cpp2_metafunction_get_symbol_names";
-
 //  Load Cpp2 libraries with metafunctions by opening DLL with the OS API
 //
 //  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
@@ -258,7 +265,7 @@ std::span<library> get_reachable_metafunction_symbols()
             };
             auto lib = std::make_shared<dll>(std::string(lib_path));
 
-            auto get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor});
+            auto get_symbols = lib->get_alias<char const**()>(symbols_accessor(lib_path));
 
             res.push_back({lib_path, {}});
             auto c_strings = get_symbols();
@@ -319,12 +326,12 @@ auto load_metafunction(
 
 }
 
-#line 261 "reflect_impl.h2"
+#line 275 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 266 "reflect_impl.h2"
+#line 280 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -351,10 +358,10 @@ class compiler_services_data
         std::deque<token>* generated_tokens_
     ) -> compiler_services_data;
 
-#line 298 "reflect_impl.h2"
+#line 312 "reflect_impl.h2"
 };
 
-#line 301 "reflect_impl.h2"
+#line 315 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -366,14 +373,14 @@ class compiler_services_data
     auto const& lookup
     ) -> bool;
 
-#line 419 "reflect_impl.h2"
+#line 433 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 485 "reflect_impl.h2"
+#line 499 "reflect_impl.h2"
 }
 
 }
@@ -395,22 +402,37 @@ namespace meta {
 [[nodiscard]] auto to_type_metafunction_cast(cpp2::in<std::string_view> name) -> std::string { 
     return "static_cast<void(*)(cpp2::meta::type_declaration&)>(" + cpp2::to_string(name) + ")";  }
 
-#line 53 "reflect_impl.h2"
+#line 41 "reflect_impl.h2"
+[[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> std::string { 
+    return cpp2::to_string(symbol_prefix) + "get_symbol_names_" + cpp2::to_string(to_lower_and_collapsed_underbar(lib_path, true, true));  }
+
+#line 46 "reflect_impl.h2"
+[[nodiscard]] auto this_symbols_accessor() -> std::string
+{
+    auto constexpr env_var = "CPPFRONT_METAFUNCTION_LIBRARY";
+    auto lib_path {std::getenv(env_var)}; 
+    if (cpp2::Default.has_handler() && !(lib_path && CPP2_ASSERT_IN_BOUNDS(lib_path, 0) != '\0') ) { cpp2::Default.report_violation(CPP2_CONTRACT_MSG(cpp2::to_string(env_var) + " should be set for a Cpp2 source with metafunctions")); }
+    // FIXME Doesn't work for a library with more than one source providing a metafunction
+    // See https://github.com/hsutter/cppfront/pull/907#issuecomment-1872644205
+    return symbols_accessor(std::move(lib_path)); 
+}
+
+#line 70 "reflect_impl.h2"
     template <typename T> expected<T>::expected(T const& v) { set_value(v);  }
-#line 53 "reflect_impl.h2"
+#line 70 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(T const& v) -> expected&  { 
                                            _storage = {};
                                            _discriminator = -1; set_value(v);
                                            return *this;  }
-#line 54 "reflect_impl.h2"
+#line 71 "reflect_impl.h2"
     template <typename T> expected<T>::expected(cpp2::in<diagnostic> u) { set_error(u);  }
-#line 54 "reflect_impl.h2"
+#line 71 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(cpp2::in<diagnostic> u) -> expected&  { 
                                                     _storage = {};
                                                     _discriminator = -1; set_error(u);
                                                     return *this;  }
 
-#line 56 "reflect_impl.h2"
+#line 73 "reflect_impl.h2"
     template <typename T> template<typename F> [[nodiscard]] auto expected<T>::and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>{
         if (is_value()) {
             return f(value()); 
@@ -470,17 +492,17 @@ template <typename T> expected<T>::expected(expected const& that)
     if (CPP2_UFCS(is_error)(std::move(that))) {set_error(CPP2_UFCS(error)(std::move(that)));}
         return *this;
     }
-#line 66 "reflect_impl.h2"
+#line 83 "reflect_impl.h2"
 }
 
 }
 
-#line 261 "reflect_impl.h2"
+#line 275 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 287 "reflect_impl.h2"
+#line 301 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_
@@ -493,7 +515,7 @@ namespace meta {
                 *cpp2::assert_not_null(errors_) }; 
     }
 
-#line 305 "reflect_impl.h2"
+#line 319 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -582,7 +604,7 @@ namespace meta {
 {
 auto const& load = load_metafunction(name, lookup);
 
-#line 391 "reflect_impl.h2"
+#line 405 "reflect_impl.h2"
             if (CPP2_UFCS(is_value)(load)) {
                 CPP2_UFCS(value)(load)(rtype);
             }else {
@@ -596,7 +618,7 @@ auto const& load = load_metafunction(name, lookup);
                 return false; 
             }
 }
-#line 403 "reflect_impl.h2"
+#line 417 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -612,7 +634,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 419 "reflect_impl.h2"
+#line 433 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -678,7 +700,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 485 "reflect_impl.h2"
+#line 499 "reflect_impl.h2"
 }
 
 }

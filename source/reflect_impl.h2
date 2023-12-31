@@ -36,6 +36,23 @@ meta: namespace = {
 to_type_metafunction_cast: (name: std::string_view) -> std::string =
     "static_cast<void(*)(cpp2::meta::type_declaration&)>((name)$)";
 
+symbol_prefix: std::string_view    == "cpp2_metafunction_";
+
+symbols_accessor: (lib_path: std::string_view) -> std::string =
+    "(symbol_prefix)$get_symbol_names_(to_lower_and_collapsed_underbar(lib_path, true, true))$";
+
+//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
+//  is read and interpreted as the Cpp2 metafunction library path of this invocation
+this_symbols_accessor: () -> std::string
+= {
+    env_var :== "CPPFRONT_METAFUNCTION_LIBRARY";
+    lib_path := std::getenv(env_var);
+    assert(lib_path && lib_path[0] != '\0', "(env_var)$ should be set for a Cpp2 source with metafunctions");
+    // FIXME Doesn't work for a library with more than one source providing a metafunction
+    // See https://github.com/hsutter/cppfront/pull/907#issuecomment-1872644205
+    return symbols_accessor(lib_path);
+}
+
 
 //-----------------------------------------------------------------------
 //
@@ -157,9 +174,6 @@ struct library
     std::vector<std::string> symbols;
 };
 
-constexpr std::string_view symbol_prefix    = "cpp2_metafunction_";
-constexpr std::string_view symbols_accessor = "cpp2_metafunction_get_symbol_names";
-
 //  Load Cpp2 libraries with metafunctions by opening DLL with the OS API
 //
 //  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
@@ -196,7 +210,7 @@ std::span<library> get_reachable_metafunction_symbols()
             };
             auto lib = std::make_shared<dll>(std::string(lib_path));
 
-            auto get_symbols = lib->get_alias<char const**()>(std::string{symbols_accessor});
+            auto get_symbols = lib->get_alias<char const**()>(symbols_accessor(lib_path));
 
             res.push_back({lib_path, {}});
             auto c_strings = get_symbols();

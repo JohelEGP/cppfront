@@ -1537,9 +1537,10 @@ public:
         {
             assert(source.has_cpp2());
 
-            std::string decl;
+            auto symbols_accessor = meta::this_symbols_accessor();
+            auto decl = std::string{};
             decl += "std::type_identity_t<char const**> "
-                  + std::string{meta::symbols_accessor}
+                  + symbols_accessor
                   + "_() {\n";
             decl += "    static char const* res[] = {\n";
             auto prefix = "        \"";
@@ -1555,9 +1556,9 @@ public:
             printer.print_extra(decl);
             printer.print_extra(
                 "CPP2_C_API constexpr auto "
-                + std::string{meta::symbols_accessor}
+                + symbols_accessor
                 + " = &"
-                + meta::symbols_accessor
+                + symbols_accessor
                 + "_;"
             );
         }

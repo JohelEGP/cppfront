@@ -449,6 +449,18 @@ auto to_upper(char c)
 }
 
 
+auto to_lower(char c)
+    -> char
+{
+    //  C toupper is only not-UB in [0,127] and returns the wrong type,
+    //  so wrap the range check and the type cast here in one place...
+    //  note the 126 (not 127) is intentional to avoid a GCC warning
+    if (0 <= c && c <= 126) { return static_cast<char>(std::tolower(c)); }
+    //  else
+    return c;
+}
+
+
 auto to_upper_and_underbar(std::string_view s)
     -> std::string
 {
@@ -456,6 +468,35 @@ auto to_upper_and_underbar(std::string_view s)
     for (char& c : ret) {
         if (std::isalnum(c)) { c = to_upper(c); }
         else                 { c = '_'; }
+    }
+    return ret;
+}
+
+
+auto to_lower_and_collapsed_underbar(
+    std::string_view s,
+    bool prev_was_underbar = false,
+    bool drop_back_underbar = false
+    )
+    -> std::string
+{
+    auto ret = std::string{};
+    for (char c : s) {
+        if (std::isalnum(c)) {
+            ret.push_back(to_lower(c));
+            prev_was_underbar = false;
+        }
+        else if (!prev_was_underbar) {
+            ret.push_back('_');
+            prev_was_underbar = true;
+        }
+    }
+    if (
+        drop_back_underbar
+        && !ret.empty()
+        )
+    {
+        ret.pop_back();
     }
     return ret;
 }
