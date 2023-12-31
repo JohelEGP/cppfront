@@ -128,16 +128,19 @@ auto parser::apply_type_metafunctions( declaration_node& n )
         [&](std::string const& name) {
             auto res = lookup(name, current_names);
 
-            auto check = std::string{};
-            check += "static_assert(";
-            check += meta::to_type_metafunction_cast(name);
-            check += " == ";
-            check += res.value().symbol;
-            check += ", ";
-            check += "\"the metafunction name '" + name + "' must be ";
-            check += "reachable and equal to the one evaluated by cppfront\"";
-            check += ");\n";
-            n.metafunction_lookup_checks.push_back(check);
+            if (res.is_value())
+            {
+                auto check = std::string{};
+                check += "static_assert(";
+                check += meta::to_type_metafunction_cast(name);
+                check += " == ";
+                check += res.value().symbol;
+                check += ", ";
+                check += "\"the metafunction name '" + name + "' must be ";
+                check += "reachable and equal to the one evaluated by cppfront\"";
+                check += ");\n";
+                n.metafunction_lookup_checks.push_back(check);
+            }
 
             return res;
         }
