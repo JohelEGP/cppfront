@@ -84,7 +84,6 @@ auto lookup_metafunction(
     -> meta::expected<meta::lookup_res>
 {
     auto res = meta::lookup_res{};
-    auto libraries = meta::get_reachable_metafunction_symbols();
 
     struct scope_t {
         std::string fully_qualified_mangled_name;
@@ -129,28 +128,21 @@ auto lookup_metafunction(
         scope.fully_qualified_mangled_name = mangle(std::move(scope.fully_qualified_mangled_name));
     }
 
-    //  Unqualified name lookup
-    if (name.find("::") == name.npos)
+    //  Lookup the name
+    auto libraries = meta::get_reachable_metafunction_symbols();
+    auto mangled_name = mangle((name.starts_with("::") ? "" : "::") + name);
+    for (auto const& scope : scopes)
     {
-        auto mangled_name = mangle("::" + name);
-        for (auto const& scope : scopes)
+        auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
+        for (auto&& lib: libraries)
         {
-            auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
-            for (auto&& lib: libraries)
+            for (std::string_view sym: lib.symbols)
             {
-                for (std::string_view sym: lib.symbols)
-                {
-                    if (sym.substr(meta::symbol_prefix.size()) == expected_symbol) {
-                        return {{lib.name, sym}};
-                    }
+                if (sym.substr(meta::symbol_prefix.size()) == expected_symbol) {
+                    return {{lib.name, sym}};
                 }
             }
         }
-    }
-    //  Qualified name lookup
-    else
-    {
-
     }
 
     //  Case not yet handled.
