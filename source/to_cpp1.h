@@ -6320,7 +6320,7 @@ public:
                 //  to be loaded by `cpp2::meta::load_metafunction`
                 if (n.is_metafunction())
                 {
-                    metafunction_symbols.emplace_back(meta::symbol_prefix + mangle(n));
+                    metafunction_symbols.push_back({meta::symbol_prefix + mangle(n), {}});
                     metafunction_symbols.back().definition =
                         "\nCPP2_C_API constexpr auto "
                         + metafunction_symbols.back().name
