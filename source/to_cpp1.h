@@ -1015,7 +1015,12 @@ class cppfront
 {
     std::string              sourcefile;
     std::vector<error_entry> errors;
-    std::vector<std::string> metafunction_symbols;
+
+    struct metafunction_symbol {
+        std::string name;
+        std::string definition;
+    };
+    std::vector<metafunction_symbol> metafunction_symbols;
 
     //  For building
     //
@@ -1467,7 +1472,12 @@ public:
 
         //  If there is Cpp2 code, we have more to do...
 
-        //  First, if this is a .h2 and in a -pure-cpp2 compilation,
+        //  First, emit metafunction symbols in the global namespace
+        for (auto const& mf: metafunction_symbols) {
+            printer.print_extra(mf.definition);
+        }
+
+        //  Then, if this is a .h2 and in a -pure-cpp2 compilation,
         //  we need to switch filenames
         if (
             cpp1_filename.back() == 'h'
@@ -1546,7 +1556,7 @@ public:
             auto prefix = "        \"";
             auto suffix = std::string{"\"\n"};
             for (auto const& mf: metafunction_symbols) {
-                decl += prefix + mf + suffix;
+                decl += prefix + mf.name + suffix;
                 prefix = "        , \"";
             }
             decl += "        , nullptr\n"; //  Sentinel element
@@ -6310,14 +6320,13 @@ public:
                 //  to be loaded by `cpp2::meta::load_metafunction`
                 if (n.is_metafunction())
                 {
-                    metafunction_symbols.push_back(meta::symbol_prefix + mangle(n));
-                    printer.print_extra(
+                    metafunction_symbols.emplace_back(meta::symbol_prefix + mangle(n));
+                    metafunction_symbols.back().definition =
                         "\nCPP2_C_API constexpr auto "
-                        + metafunction_symbols.back()
+                        + metafunction_symbols.back().name
                         + " = "
-                        + meta::to_type_metafunction_cast(print_to_string(*n.identifier))
-                        + ";"
-                    );
+                        + meta::to_type_metafunction_cast(n.fully_qualified_name())
+                        + ";";
                 }
 
                 //  Note: Not just early "return;" here because we may need

@@ -2755,6 +2755,23 @@ public:
             ;
     }
 
+    auto fully_qualified_name() const
+        -> std::string
+    {
+        if (!has_name()) {
+            return {};
+        }
+
+        auto res = std::string{};
+        for (auto n = this; n; n = n->parent_declaration)
+        {
+            assert(n->identifier);
+            res.insert(0, n->identifier->to_string());
+            res.insert(0, "::");
+        }
+        return res;
+    }
+
     auto has_initializer() const
         -> bool
     {
