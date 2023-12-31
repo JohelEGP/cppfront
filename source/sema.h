@@ -88,19 +88,19 @@ auto lookup_metafunction(
 
     struct scope_t {
         std::string fully_qualified_mangled_name;
-        current_names_span::iterator names_first;
-        current_names_span::iterator names_last;
+        current_names_span::pointer names_first;
+        current_names_span::pointer names_last;
 
         current_names_span names() const { return {names_first, names_last}; }
     };
-    std::vector<scope_t> scopes = { {{}, {}, current_names.end()} };
+    std::vector<scope_t> scopes = { {{}, {}, current_names.data() + current_names.size()} };
 
     //  Build up 'scopes'
     for (
-        auto first = current_names.rbegin(),
-             last = current_names.rend() - 1;
+        auto first = current_names.data() + current_names.size() - 1,
+             last = current_names.data();
         first != last;
-        ++first
+        --first
     )
     {
         if (
@@ -118,11 +118,11 @@ auto lookup_metafunction(
                 scope.fully_qualified_mangled_name.insert(0u, *id);
                 scope.fully_qualified_mangled_name.insert(0u, "::");
             }
-            scopes.push_back( {{}, first.base(), first.base()} );
+            scopes.push_back( {{}, first, first} );
         }
         else
         {
-            scopes.back().names_first = first.base();
+            scopes.back().names_first = first;
         }
     }
     for (auto& scope : scopes) {
