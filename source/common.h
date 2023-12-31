@@ -494,6 +494,7 @@ auto to_lower_and_collapsed_underbar(
     if (
         drop_back_underbar
         && !ret.empty()
+        && ret.back() == '_'
         )
     {
         ret.pop_back();
