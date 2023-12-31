@@ -6306,6 +6306,20 @@ public:
                     printer.print_cpp2( ";", n.position() );
                 }
 
+                //  Emit the symbol for a metafunction
+                //  to be loaded by `cpp2::meta::load_metafunction`
+                if (n.is_metafunction())
+                {
+                    metafunction_symbols.push_back(meta::symbol_prefix + mangle(n));
+                    printer.print_extra(
+                        "\nCPP2_C_API constexpr auto "
+                        + metafunction_symbols.back()
+                        + " = "
+                        + meta::to_type_metafunction_cast(print_to_string(*n.identifier))
+                        + ";"
+                    );
+                }
+
                 //  Note: Not just early "return;" here because we may need
                 //  to recurse to emit generated operator declarations too,
                 //  so all the definition work goes into a big 'else' branch
@@ -6435,23 +6449,6 @@ public:
                 printer.preempt_position_pop();
 
                 function_returns.pop_back();
-
-                //  Emit the symbol for a metafunction
-                //  to be loaded by `cpp2::meta::load_function`
-                if (
-                    n.is_metafunction()
-                    && printer.get_phase() == positional_printer::phase2_func_defs
-                    )
-                {
-                    metafunction_symbols.push_back(meta::symbol_prefix + mangle(n));
-                    printer.print_extra(
-                        "\nCPP2_C_API constexpr auto "
-                        + metafunction_symbols.back()
-                        + " = "
-                        + meta::to_type_metafunction_cast(print_to_string(*n.identifier))
-                        + ";"
-                    );
-                }
             }
 
             //  Finally, do the potential recursions...
