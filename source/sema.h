@@ -23,27 +23,31 @@
 
 namespace cpp2 {
 
-auto mangle(declaration_node const& n_)
+auto mangle(std::string res)
     -> std::string
 {
-    assert(n_.identifier);
-    assert(n_.identifier->template_arguments().empty());
-    assert(n_.parent_is_namespace());
-
-    std::string res;
-
     //  Mangle (id length, id) pairs according to
     //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
     //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
-    for (auto n = &n_; n; n = n->parent_declaration)
+    auto xpos = res.size();
+    auto prev_id_end = xpos;
+    while ((xpos = res.find_last_of(':', xpos)) != res.npos)
     {
-        assert(n->identifier);
-        auto id = n->identifier->to_string();
-        res.insert(0, id);
-        res.insert(0, std::to_string(id.size()));
+        res.replace(xpos - 1, 2, std::to_string(prev_id_end - xpos - 1));
+        prev_id_end = xpos - 1;
     }
 
     return res;
+}
+
+auto mangle(declaration_node const& n)
+    -> std::string
+{
+    assert(n.identifier);
+    assert(n.identifier->template_arguments().empty());
+    assert(n.parent_is_namespace());
+
+    return mangle(n.fully_qualified_name());
 }
 
 auto demangle(std::string_view s)
@@ -73,7 +77,7 @@ auto demangle(std::string_view s)
     return res;
 }
 
-auto lookup(
+auto lookup_metafunction(
     std::string const& name,
     current_names_span current_names
     )
@@ -82,18 +86,63 @@ auto lookup(
     auto res = meta::lookup_res{};
     auto libraries = meta::get_reachable_metafunction_symbols();
 
-    (void)current_names;
+    struct scope_t {
+        std::string fully_qualified_mangled_name;
+        current_names_span::iterator names_first;
+        current_names_span::iterator names_last;
+
+        current_names_span names() const { return {names_first, names_last}; }
+    };
+    std::vector<scope_t> scopes = { {{}, {}, current_names.end()} };
+
+    //  Build up 'scopes'
+    for (
+        auto first = current_names.rbegin(),
+             last = current_names.rend() - 1;
+        first != last;
+        ++first
+    )
+    {
+        if (
+            auto decl = get_if<declaration_node const*>(&*first);
+            decl
+            && *decl
+            && (*decl)->is_namespace()
+            )
+        {
+            //  TODO Handle unnamed namespace '_'
+            auto id = (*decl)->name();
+            assert(id);
+            for (auto& scope : scopes)
+            {
+                scope.fully_qualified_mangled_name.insert(0u, *id);
+                scope.fully_qualified_mangled_name.insert(0u, "::");
+            }
+            scopes.push_back( {{}, first.base(), first.base()} );
+        }
+        else
+        {
+            scopes.back().names_first = first.base();
+        }
+    }
+    for (auto& scope : scopes) {
+        scope.fully_qualified_mangled_name = mangle(std::move(scope.fully_qualified_mangled_name));
+    }
 
     //  Unqualified name lookup
     if (name.find("::") == name.npos)
     {
-        for (auto&& lib: libraries)
+        auto mangled_name = mangle("::" + name);
+        for (auto const& scope : scopes)
         {
-            for (std::string_view sym: lib.symbols)
+            auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
+            for (auto&& lib: libraries)
             {
-                auto dname = demangle(sym.substr(meta::symbol_prefix.size()));
-                if (dname == name) {
-                    return {{lib.name, sym}};
+                for (std::string_view sym: lib.symbols)
+                {
+                    if (sym.substr(meta::symbol_prefix.size()) == expected_symbol) {
+                        return {{lib.name, sym}};
+                    }
                 }
             }
         }
@@ -126,7 +175,7 @@ auto parser::apply_type_metafunctions( declaration_node& n )
         rtype,
         [&](std::string const& msg) { error( msg, false ); },
         [&](std::string const& name) {
-            auto res = lookup(name, current_names);
+            auto res = lookup_metafunction(name, current_names);
 
             if (res.is_value())
             {
