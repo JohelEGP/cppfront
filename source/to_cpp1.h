@@ -5541,6 +5541,7 @@ public:
         }
 
 
+        //  Emit sanity check to ensure the Cpp1 lookup matches ours
         if (printer.get_phase() == printer.phase1_type_defs_func_decls) {
             for (auto&& check : n.metafunction_lookup_checks) {
                 printer.print_extra(check);

@@ -179,6 +179,7 @@ auto parser::apply_type_metafunctions( declaration_node& n )
         [&](std::string const& name) {
             auto res = lookup_metafunction(name, current_declarations, current_names);
 
+            //  Save sanity check to ensure the Cpp1 lookup matches ours
             if (res.is_value())
             {
                 auto check = std::string{};
