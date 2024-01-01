@@ -84,9 +84,9 @@ namespace meta {
 
 #line 39 "reflect_impl.h2"
 [[nodiscard]] auto symbol_prefix(cpp2::in<std::string_view> suffix) -> std::string;
+[[nodiscard]] auto symbol_prefix(char const* suffix) -> std::string;
 [[nodiscard]] auto symbol_prefix() -> std::string;
-template<typename B> [[nodiscard]] auto symbol_prefix(B const& source_has_source_interface) -> std::string
-CPP2_REQUIRES (std::same_as<B,bool>) ;
+[[nodiscard]] auto symbol_prefix(cpp2::in<bool> source_has_source_interface) -> std::string;
 
 #line 53 "reflect_impl.h2"
 [[nodiscard]] auto symbol_without_prefix(std::string_view sym) -> std::string_view;
@@ -414,11 +414,10 @@ namespace meta {
     return "static_cast<void(*)(cpp2::meta::type_declaration&)>(" + cpp2::to_string(name) + ")";  }
 
 [[nodiscard]] auto symbol_prefix(cpp2::in<std::string_view> suffix) -> std::string { return "cpp2_metafunction_" + cpp2::to_string(suffix);  }
+[[nodiscard]] auto symbol_prefix(char const* suffix) -> std::string { return symbol_prefix(std::string_view(suffix));  }
 [[nodiscard]] auto symbol_prefix() -> std::string { return symbol_prefix("");  }
-template<typename B> [[nodiscard]] auto symbol_prefix(B const& source_has_source_interface) -> std::string
-requires (std::same_as<B,bool>) 
+[[nodiscard]] auto symbol_prefix(cpp2::in<bool> source_has_source_interface) -> std::string
 
-#line 44 "reflect_impl.h2"
 {
     if (source_has_source_interface) {
         return symbol_prefix("r_");  // 'r' for reachable

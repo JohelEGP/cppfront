@@ -37,10 +37,10 @@ to_type_metafunction_cast: (name: std::string_view) -> std::string =
     "static_cast<void(*)(cpp2::meta::type_declaration&)>((name)$)";
 
 symbol_prefix: (suffix: std::string_view) -> std::string = "cpp2_metafunction_(suffix)$";
+symbol_prefix: (suffix: * const char) -> std::string = symbol_prefix(std::string_view(suffix));
 symbol_prefix: () -> std::string = symbol_prefix("");
-symbol_prefix: <B> (source_has_source_interface: B)
+symbol_prefix: (source_has_source_interface: bool)
     -> std::string
-    requires std::same_as<B, bool>
 = {
     if source_has_source_interface {
         return symbol_prefix("r_");  // 'r' for reachable
