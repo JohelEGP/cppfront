@@ -163,10 +163,7 @@ auto lookup_metafunction(
     return res;
 }
 
-auto parser::apply_type_metafunctions(
-    declaration_node& n,
-    bool source_has_source_interface
-    )
+auto parser::apply_type_metafunctions( declaration_node& n )
     -> bool
 {
     assert(n.is_type());

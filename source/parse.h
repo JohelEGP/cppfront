@@ -8148,7 +8148,7 @@ private:
     }
 
 
-    auto apply_type_metafunctions( declaration_node& decl, bool source_has_source_interface )
+    auto apply_type_metafunctions( declaration_node& decl )
         -> bool;
     auto apply_function_metafunctions( declaration_node& decl )
         -> bool;
@@ -8599,7 +8599,7 @@ private:
 
         //  If this is a type with metafunctions, apply those
         if (n->is_type()) {
-            if (!apply_type_metafunctions(*n, source_has_source_interface)) {
+            if (!apply_type_metafunctions(*n)) {
                 error(
                     "error encountered while applying type metafunctions",
                     false, {}, true
