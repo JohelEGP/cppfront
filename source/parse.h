@@ -5211,14 +5211,32 @@ auto stack_size_if(
 
 
 struct active_using_declaration {
-    token const* identifier = {};
-    std::string qualified;
+    qualified_id_node const* id = {};
 
     explicit active_using_declaration(using_statement_node const& n) {
-      if (auto id = get_if<id_expression_node::qualified>(&n.id->id)) {
-          identifier = (*id)->ids.back().id->identifier;
-          qualified = (*id)->to_string();
+      if (auto id_ = get_if<id_expression_node::qualified>(&n.id->id)) {
+          id = &**id_;
       }
+    }
+
+    auto introduced_identifier() const
+        -> std::string_view
+    {
+        if (id) {
+            return *id->ids.back().id->identifier;
+        }
+        // else
+        return {};
+    }
+
+    auto to_string() const
+        -> std::string
+    {
+        if (id) {
+            return id->to_string();
+        }
+        // else
+        return {};
     }
 };
 
@@ -5248,8 +5266,7 @@ auto source_order_name_lookup(current_names_span current_names, std::string_view
         else if (
             auto using_ = get_if<active_using_declaration>(&*first);
             using_
-            && using_->identifier
-            && *using_->identifier == id
+            && using_->introduced_identifier() == id
             )
         {
             return *using_;

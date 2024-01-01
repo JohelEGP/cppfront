@@ -137,12 +137,12 @@ auto lookup_metafunction(
         auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
         //  FIXME #470 or emit using statement only in
         //  Phase 2 "Cpp2 type definitions and function declarations"
-        // if (auto lookup = source_order_name_lookup(scope.names(), name)) {
-        //     if (auto alias = get_if<active_using_declaration>(&*lookup)) {
-        //         //  TODO Handle relative qualified-id
-        //         expected_symbol = mangle((name.starts_with("::") ? "" : "::") + alias->qualified);
-        //     }
-        // }
+        if (auto lookup = source_order_name_lookup(scope.names(), name)) {
+            if (auto using_ = get_if<active_using_declaration>(&*lookup)) {
+                //  TODO Handle relative qualified-id
+                expected_symbol = mangle((name.starts_with("::") ? "" : "::") + using_->to_string());
+            }
+        }
 
         for (auto&& lib: libraries)
         {
