@@ -5541,14 +5541,10 @@ public:
         }
 
 
-        //  Emit sanity check to ensure the Cpp1 lookup matches ours
         if (printer.get_phase() == printer.phase1_type_defs_func_decls) {
-            assert(n.metafunctions.size() == n.metafunction_lookup_checks.size());
-            auto mf = n.metafunctions.begin();
             for (auto&& check : n.metafunction_lookup_checks) {
-                printer.print_cpp2(check, (*assert_not_null(mf++))->position());
+                printer.print_extra(check);
             }
-            printer.reset_line_to(n.position().lineno);
         }
 
 
