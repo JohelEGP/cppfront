@@ -77,8 +77,11 @@ auto demangle(std::string_view s)
     return res;
 }
 
+using current_declarations_span = std::span<declaration_node* const>;
+
 auto lookup_metafunction(
     std::string const& name,
+    current_declarations_span current_declarations,
     current_names_span current_names
     )
     -> meta::expected<meta::lookup_res>
@@ -88,42 +91,40 @@ auto lookup_metafunction(
     struct scope_t {
         std::string fully_qualified_mangled_name;
         current_names_span::pointer names_first;
-        current_names_span::pointer names_last;
+        current_names_span::pointer names_last = names_first;
 
         current_names_span names() const { return {names_first, names_last}; }
     };
-    std::vector<scope_t> scopes = { {{}, {}, current_names.data() + current_names.size()} };
+    std::vector<scope_t> scopes = { { {}, current_names.data() + current_names.size() } };
 
     //  Build up 'scopes'
+    assert(current_declarations.back()->is_type());
     for (
-        auto first = current_names.data() + current_names.size() - 1,
-             last = current_names.data();
+        auto first = current_declarations.data() + current_declarations.size() - 2,
+             last = current_declarations.data();
         first != last;
         --first
     )
     {
-        if (
-            auto decl = get_if<declaration_node const*>(&*first);
-            decl
-            && *decl
-            && (*decl)->is_namespace()
-            )
+        assert(*first && (*first)->is_namespace());
+
+        //  TODO Handle unnamed namespace '_'
+        auto id = (*first)->name();
+        assert(id);
+        for (auto& scope : scopes)
         {
-            //  TODO Handle unnamed namespace '_'
-            auto id = (*decl)->name();
-            assert(id);
-            for (auto& scope : scopes)
-            {
-                scope.fully_qualified_mangled_name.insert(0u, *id);
-                scope.fully_qualified_mangled_name.insert(0u, "::");
-            }
-            scopes.push_back( {{}, first, first} );
+            scope.fully_qualified_mangled_name.insert(0u, *id);
+            scope.fully_qualified_mangled_name.insert(0u, "::");
         }
-        else
-        {
-            scopes.back().names_first = first;
-        }
+        do {
+            --scopes.back().names_first;
+        } while (
+            !get_if<declaration_node const*>(scopes.back().names_first)
+            || get<declaration_node const*>(*scopes.back().names_first) != *first
+        );
+        scopes.push_back( { {}, scopes.back().names_first } );
     }
+    scopes.back().names_first = current_names.data() + 1;
     for (auto& scope : scopes) {
         scope.fully_qualified_mangled_name = mangle(std::move(scope.fully_qualified_mangled_name));
     }
@@ -167,7 +168,7 @@ auto parser::apply_type_metafunctions( declaration_node& n )
         rtype,
         [&](std::string const& msg) { error( msg, false ); },
         [&](std::string const& name) {
-            auto res = lookup_metafunction(name, current_names);
+            auto res = lookup_metafunction(name, current_declarations, current_names);
 
             //  Save sanity check to ensure the Cpp1 lookup matches ours
             if (res.is_value())
