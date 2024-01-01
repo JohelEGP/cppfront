@@ -5212,10 +5212,12 @@ auto stack_size_if(
 
 struct active_using_declaration {
     token const* identifier = {};
+    std::string qualified;
 
     explicit active_using_declaration(using_statement_node const& n) {
       if (auto id = get_if<id_expression_node::qualified>(&n.id->id)) {
           identifier = (*id)->ids.back().id->identifier;
+          qualified = (*id)->to_string();
       }
     }
 };
@@ -5225,7 +5227,7 @@ using source_order_name_lookup_res =
 
 using current_names_span = std::span<const source_order_name_lookup_res::value_type>;
 
-auto source_order_name_lookup(current_names_span current_names, unqualified_id_node const& id)
+auto source_order_name_lookup(current_names_span current_names, std::string_view id)
     -> source_order_name_lookup_res
 {
     for (
@@ -5238,7 +5240,7 @@ auto source_order_name_lookup(current_names_span current_names, unqualified_id_n
             auto decl = get_if<declaration_node const*>(&*first);
             decl
             && *decl
-            && (*decl)->has_name(*id.identifier)
+            && (*decl)->has_name(id)
             )
         {
             return *decl;
@@ -5247,7 +5249,7 @@ auto source_order_name_lookup(current_names_span current_names, unqualified_id_n
             auto using_ = get_if<active_using_declaration>(&*first);
             using_
             && using_->identifier
-            && *using_->identifier == *id.identifier
+            && *using_->identifier == id
             )
         {
             return *using_;

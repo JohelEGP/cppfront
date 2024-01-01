@@ -2856,7 +2856,7 @@ public:
         }
 
         auto const& id = *get<id_expression_node::unqualified>(n.id);
-        auto lookup = source_order_name_lookup(current_names, id);
+        auto lookup = source_order_name_lookup(current_names, *id.identifier);
 
         if (
             !lookup

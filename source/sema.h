@@ -124,7 +124,7 @@ auto lookup_metafunction(
         );
         scopes.push_back( { {}, scopes.back().names_first } );
     }
-    scopes.back().names_first = current_names.data() + 1;
+    scopes.back().names_first = current_names.data();
     for (auto& scope : scopes) {
         scope.fully_qualified_mangled_name = mangle(std::move(scope.fully_qualified_mangled_name));
     }
@@ -135,6 +135,15 @@ auto lookup_metafunction(
     for (auto const& scope : scopes)
     {
         auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
+        //  FIXME #470 or emit using statement only in
+        //  Phase 2 "Cpp2 type definitions and function declarations"
+        // if (auto lookup = source_order_name_lookup(scope.names(), name)) {
+        //     if (auto alias = get_if<active_using_declaration>(&*lookup)) {
+        //         //  TODO Handle relative qualified-id
+        //         expected_symbol = mangle((name.starts_with("::") ? "" : "::") + alias->qualified);
+        //     }
+        // }
+
         for (auto&& lib: libraries)
         {
             for (std::string_view sym: lib.symbols)
