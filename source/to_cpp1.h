@@ -1030,6 +1030,7 @@ class cppfront
     cpp2::sema   sema;
 
     bool source_loaded                  = true;
+    bool source_has_source_interface    = sourcefile.ends_with(".h2");
     bool last_postfix_expr_was_pointer  = false;
     bool violates_bounds_safety         = false;
     bool violates_initialization_safety = false;
@@ -1159,7 +1160,7 @@ public:
         : sourcefile{ filename }
         , source    { errors }
         , tokens    { errors }
-        , parser    { errors }
+        , parser    { errors, source_has_source_interface }
         , sema      { errors }
     {
         //  "Constraints enable creativity in the right directions"
@@ -6321,7 +6322,7 @@ public:
                 //  to be loaded by `cpp2::meta::load_metafunction`
                 if (n.is_metafunction())
                 {
-                    metafunction_symbols.push_back({meta::symbol_prefix + mangle(n), {}});
+                    metafunction_symbols.push_back({meta::symbol_prefix(source_has_source_interface) + mangle(n), {}});
                     metafunction_symbols.back().definition =
                         "\nCPP2_C_API constexpr auto "
                         + metafunction_symbols.back().name

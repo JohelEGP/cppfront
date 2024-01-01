@@ -5288,6 +5288,8 @@ class parser
 
     std::unique_ptr<translation_unit_node> parse_tree = {};
 
+    bool source_has_source_interface = false;
+
     //  Keep a stack of current capture groups (contracts/decls still being parsed)
     std::vector<capture_group*> current_capture_groups = {};
 
@@ -5412,9 +5414,10 @@ public:
     //
     //  errors      error list
     //
-    parser( std::vector<error_entry>& errors_ )
+    parser( std::vector<error_entry>& errors_, bool source_has_source_interface_ )
         : errors{ errors_ }
         , parse_tree{std::make_unique<translation_unit_node>()}
+        , source_has_source_interface{source_has_source_interface_}
     { }
 
     parser( parser const& that )
@@ -8145,7 +8148,7 @@ private:
     }
 
 
-    auto apply_type_metafunctions( declaration_node& decl )
+    auto apply_type_metafunctions( declaration_node& decl, bool source_has_source_interface )
         -> bool;
     auto apply_function_metafunctions( declaration_node& decl )
         -> bool;
@@ -8596,7 +8599,7 @@ private:
 
         //  If this is a type with metafunctions, apply those
         if (n->is_type()) {
-            if (!apply_type_metafunctions(*n)) {
+            if (!apply_type_metafunctions(*n, source_has_source_interface)) {
                 error(
                     "error encountered while applying type metafunctions",
                     false, {}, true

@@ -148,7 +148,7 @@ auto lookup_metafunction(
         {
             for (std::string_view sym: lib.symbols)
             {
-                if (sym.substr(meta::symbol_prefix.size()) == expected_symbol) {
+                if (meta::symbol_without_prefix(sym) == expected_symbol) {
                     return {{lib.name, sym}};
                 }
             }
@@ -163,13 +163,18 @@ auto lookup_metafunction(
     return res;
 }
 
-auto parser::apply_type_metafunctions( declaration_node& n )
+auto parser::apply_type_metafunctions(
+    declaration_node& n,
+    bool source_has_source_interface
+    )
     -> bool
 {
     assert(n.is_type());
 
     //  Get the reflection state ready to pass to the function
-    auto cs = meta::compiler_services{meta::compiler_services_data::make( &errors, generated_tokens )};
+    auto cs = meta::compiler_services{
+        meta::compiler_services_data::make( &errors, generated_tokens, source_has_source_interface )
+    };
     auto rtype = meta::type_declaration{ &n, cs };
 
     return apply_metafunctions(
@@ -180,7 +185,10 @@ auto parser::apply_type_metafunctions( declaration_node& n )
             auto res = lookup_metafunction(name, current_declarations, current_names);
 
             //  Save sanity check to ensure the Cpp1 lookup matches ours
-            if (res.is_value())
+            if (
+                res.is_value()
+                && meta::symbol_is_reachable(res.value().symbol)
+                )
             {
                 auto check = std::string{};
                 check += "static_assert(";
@@ -205,7 +213,7 @@ auto parser::apply_function_metafunctions( declaration_node& n )
     assert(n.is_function());
 
     //  Get the reflection state ready to pass to the function
-    auto cs = meta::compiler_services{meta::compiler_services_data::make( &errors, generated_tokens )};
+    auto cs = meta::compiler_services{meta::compiler_services_data::make( &errors, generated_tokens, false )};
     auto rfunction = meta::function_declaration{ &n, cs };
 
     return apply_metafunctions(
