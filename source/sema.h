@@ -116,7 +116,7 @@ auto parser::apply_type_metafunctions( declaration_node& n )
 
     //  Get the reflection state ready to pass to the function
     auto cs = meta::compiler_services{
-        meta::compiler_services_data::make( &errors, generated_tokens, source_has_source_interface )
+        meta::compiler_services_data::make( &errors, generated_tokens, translation_unit_has_interface() )
     };
     auto rtype = meta::type_declaration{ &n, cs };
 

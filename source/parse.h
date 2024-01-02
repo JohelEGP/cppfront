@@ -4238,6 +4238,7 @@ auto parameter_declaration_node::visit(auto& v, int depth)
 
 struct translation_unit_node
 {
+    bool has_interface = false;
     std::vector< std::unique_ptr<declaration_node> > declarations;
 
     auto position() const -> source_position
@@ -5288,8 +5289,6 @@ class parser
 
     std::unique_ptr<translation_unit_node> parse_tree = {};
 
-    bool source_has_source_interface = false;
-
     //  Keep a stack of current capture groups (contracts/decls still being parsed)
     std::vector<capture_group*> current_capture_groups = {};
 
@@ -5414,16 +5413,18 @@ public:
     //
     //  errors      error list
     //
-    parser( std::vector<error_entry>& errors_, bool source_has_source_interface_ )
+    parser( std::vector<error_entry>& errors_, bool translation_unit_has_interface_ )
         : errors{ errors_ }
-        , parse_tree{std::make_unique<translation_unit_node>()}
-        , source_has_source_interface{source_has_source_interface_}
+        , parse_tree{std::make_unique<translation_unit_node>(translation_unit_has_interface_)}
     { }
 
     parser( parser const& that )
         : errors{ that.errors }
         , parse_tree{std::make_unique<translation_unit_node>()}
     { }
+
+
+    auto translation_unit_has_interface() -> bool { return parse_tree->has_interface; }
 
 
     //-----------------------------------------------------------------------
