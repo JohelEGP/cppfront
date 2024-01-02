@@ -2005,6 +2005,15 @@ using cpp2::cpp2_new;
     #define CPP2_REQUIRES_(...) requires (__VA_ARGS__)
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4251)
+#endif
+
 #include "cpp2reflect.h"
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif
