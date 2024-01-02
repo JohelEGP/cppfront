@@ -424,7 +424,7 @@ auto load_metafunction(
     -> expected<load_metafunction_ret>
 {
     return lookup(name).and_then(
-        [&](lookup_res res)
+        [](lookup_res res)
             -> expected<load_metafunction_ret>
         {
             auto [lib_path, cpp1_name] = res;
