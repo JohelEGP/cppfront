@@ -97,11 +97,11 @@ symbols_accessor: (lib_path: std::string_view)
     -> dll_symbol
     = dll_symbol("get_symbol_names_(to_lower_and_collapsed_underbar(lib_path, true, true))$");
 
-//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
-//  is read and interpreted as the Cpp2 metafunction library path of this execution
 this_execution: namespace =
 {
 
+//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
+//  is read and interpreted as the Cpp2 metafunction library path of this execution
 symbols_accessor: ()
     -> dll_symbol
 = {

@@ -19,7 +19,7 @@ namespace meta {
 class dll_symbol;
     
 
-#line 102 "reflect_impl.h2"
+#line 100 "reflect_impl.h2"
 namespace this_execution
  {
 
@@ -134,11 +134,11 @@ public: auto operator=(dll_symbol&& that) noexcept -> dll_symbol& ;
 [[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> dll_symbol;
 
 #line 100 "reflect_impl.h2"
-//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
-//  is read and interpreted as the Cpp2 metafunction library path of this execution
 namespace this_execution
  {
 
+//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
+//  is read and interpreted as the Cpp2 metafunction library path of this execution
 [[nodiscard]] auto symbols_accessor() -> dll_symbol;
 
 #line 116 "reflect_impl.h2"
@@ -603,10 +603,10 @@ auto dll_symbol::operator=(dll_symbol&& that) noexcept -> dll_symbol& {
 
     return dll_symbol("get_symbol_names_" + cpp2::to_string(to_lower_and_collapsed_underbar(lib_path, true, true)));  }
 
-#line 102 "reflect_impl.h2"
 namespace this_execution
  {
 
+#line 105 "reflect_impl.h2"
 [[nodiscard]] auto symbols_accessor() -> dll_symbol
 
 {
