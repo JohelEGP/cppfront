@@ -557,7 +557,7 @@ apply_metafunctions: (
 
 
 apply_metafunctions: (
-    inout n     : declaration_node,
+    inout n         : declaration_node,
     inout rfunction : function_declaration,
     error
     )
