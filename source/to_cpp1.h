@@ -1017,7 +1017,7 @@ class cppfront
     std::vector<error_entry> errors;
 
     struct metafunction_symbol {
-        std::string name;
+        meta::dll_symbol name;
         std::string definition;
     };
     std::vector<metafunction_symbol> metafunction_symbols;
@@ -1548,7 +1548,7 @@ public:
         {
             assert(source.has_cpp2());
 
-            auto symbols_accessor = meta::this_symbols_accessor();
+            auto symbols_accessor = std::string{meta::this_execution::symbols_accessor().view()};
             auto decl = std::string{};
             decl += "std::type_identity_t<char const**> "
                   + symbols_accessor
@@ -1557,7 +1557,7 @@ public:
             auto prefix = "        \"";
             auto suffix = std::string{"\"\n"};
             for (auto const& mf: metafunction_symbols) {
-                decl += prefix + mf.name + suffix;
+                decl += prefix + (mf.name.view() + suffix);
                 prefix = "        , \"";
             }
             decl += "        , nullptr\n"; //  Sentinel element
@@ -6318,14 +6318,15 @@ public:
                     printer.print_cpp2( ";", n.position() );
                 }
 
-                //  Emit the symbol for a metafunction
+                //  Save the symbol for a metafunction
+                //  to be emitted in the global namespace and
                 //  to be loaded by `cpp2::meta::load_metafunction`
                 if (n.is_metafunction())
                 {
-                    metafunction_symbols.push_back({meta::symbol_prefix(source_has_source_interface) + mangle(n), {}});
+                    metafunction_symbols.push_back({meta::dll_symbol(n, source_has_source_interface), {}});
                     metafunction_symbols.back().definition =
-                        "\nCPP2_C_API constexpr auto "
-                        + metafunction_symbols.back().name
+                        std::string{"\nCPP2_C_API constexpr auto "}
+                        + metafunction_symbols.back().name.view()
                         + " = "
                         + meta::to_type_metafunction_cast(n.fully_qualified_name())
                         + ";";

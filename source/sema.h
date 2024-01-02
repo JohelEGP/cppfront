@@ -23,60 +23,6 @@
 
 namespace cpp2 {
 
-auto mangle(std::string res)
-    -> std::string
-{
-    //  Mangle (id length, id) pairs according to
-    //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
-    //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
-    auto xpos = res.size();
-    auto prev_id_end = xpos;
-    while ((xpos = res.find_last_of(':', xpos)) != res.npos)
-    {
-        res.replace(xpos - 1, 2, std::to_string(prev_id_end - xpos - 1));
-        prev_id_end = xpos - 1;
-    }
-
-    return res;
-}
-
-auto mangle(declaration_node const& n)
-    -> std::string
-{
-    assert(n.identifier);
-    assert(n.identifier->template_arguments().empty());
-    assert(n.parent_is_namespace());
-
-    return mangle(n.fully_qualified_name());
-}
-
-auto demangle(std::string_view s)
-    -> std::string
-{
-    std::string res{};
-
-    //  Demangle (id length, id) pairs according to
-    //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
-    //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
-    while (!s.empty())
-    {
-        auto length = s.substr(0, s.find_first_not_of("0123456789"));
-        s.remove_prefix(length.size());
-        auto id = s.substr(0, unsafe_narrow<unsigned>(std::stoi(std::string{length})));
-        s.remove_prefix(id.size());
-
-        assert(!length.empty());
-        assert(!id.empty());
-
-        res += id;
-        if (!s.empty()) {
-            res += "::";
-        }
-    }
-
-    return res;
-}
-
 using current_declarations_span = std::span<declaration_node* const>;
 
 auto lookup_metafunction(
@@ -126,12 +72,12 @@ auto lookup_metafunction(
     }
     scopes.back().names_first = current_names.data();
     for (auto& scope : scopes) {
-        scope.fully_qualified_mangled_name = mangle(std::move(scope.fully_qualified_mangled_name));
+        scope.fully_qualified_mangled_name = meta::mangle(std::move(scope.fully_qualified_mangled_name));
     }
 
     //  Lookup the name
     auto libraries = meta::get_reachable_metafunction_symbols();
-    auto mangled_name = mangle((name.starts_with("::") ? "" : "::") + name);
+    auto mangled_name = meta::mangle((name.starts_with("::") ? "" : "::") + name);
     for (auto const& scope : scopes)
     {
         auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
@@ -140,16 +86,16 @@ auto lookup_metafunction(
         if (auto lookup = source_order_name_lookup(scope.names(), name)) {
             if (auto using_ = get_if<active_using_declaration>(&*lookup)) {
                 //  TODO Handle relative qualified-id
-                expected_symbol = mangle((name.starts_with("::") ? "" : "::") + using_->to_string());
+                expected_symbol = meta::mangle((name.starts_with("::") ? "" : "::") + using_->to_string());
             }
         }
 
         for (auto&& lib: libraries)
         {
-            for (std::string_view sym: lib.symbols)
+            for (auto&& sym: lib.symbols)
             {
-                if (meta::symbol_without_prefix(sym) == expected_symbol) {
-                    return {{lib.name, sym}};
+                if (sym.without_prefix() == expected_symbol) {
+                    return {{lib.name, &sym}};
                 }
             }
         }
@@ -184,14 +130,14 @@ auto parser::apply_type_metafunctions( declaration_node& n )
             //  Save sanity check to ensure the Cpp1 lookup matches ours
             if (
                 res.is_value()
-                && meta::symbol_is_reachable(res.value().symbol)
+                && res.value().symbol->is_reachable()
                 )
             {
                 auto check = std::string{};
                 check += "static_assert(";
                 check += meta::to_type_metafunction_cast(name);
                 check += " == ";
-                check += res.value().symbol;
+                check += res.value().symbol->view();
                 check += ", ";
                 check += "\"the metafunction name '" + name + "' must be ";
                 check += "reachable and equal to the one evaluated by cppfront\"";

@@ -36,49 +36,81 @@ meta: namespace = {
 to_type_metafunction_cast: (name: std::string_view) -> std::string =
     "static_cast<void(*)(cpp2::meta::type_declaration&)>((name)$)";
 
-symbol_prefix: (suffix: std::string_view) -> std::string = "cpp2_metafunction_(suffix)$";
-symbol_prefix: (suffix: * const char) -> std::string = symbol_prefix(std::string_view(suffix));
-symbol_prefix: () -> std::string = symbol_prefix("");
-symbol_prefix: (source_has_source_interface: bool)
-    -> std::string
-= {
-    if source_has_source_interface {
-        return symbol_prefix("r_");  // 'r' for reachable
+
+//-----------------------------------------------------------------------
+//
+//  dll_symbol
+//
+dll_symbol: @value type = {
+    value: std::string = ();
+
+    constant_prefix: std::string_view == "cpp2_metafunction_";
+    reachable_mangle: std::string_view == "r";
+    const_metafunction_mangle: std::string_view == "c";
+
+    operator=: (implicit out this) = { }
+    operator=: (out this, n: declaration_node, is_reachable_: bool)
+        pre(n.is_metafunction())
+        post(is_reachable() == is_reachable_)
+        post(is_const_metafunction() == false)
+    = {
+        value = constant_prefix;
+        if is_reachable_ {
+            value += reachable_mangle;
+        }
+        if false {
+            value += const_metafunction_mangle;
+        }
+        value += mangle(n);
     }
-    else {
-        return symbol_prefix();
+    operator=: (out this, copy s: std::string_view)
+    = {
+        if !s.starts_with(constant_prefix) {
+            value += constant_prefix;
+        }
+        value += s;
     }
+
+    c_str: (this) -> *const char = value.c_str();
+    view: (this) -> std::string_view = value;
+    without_prefix: (this)
+        -> (res: std::string_view = view())
+    = {
+        res.remove_prefix(constant_prefix.size());
+        for (reachable_mangle, const_metafunction_mangle)
+        do  (m)
+        if res.starts_with(m) {
+            res.remove_prefix(m.size());
+        }
+    }
+
+    is_reachable: (this) -> bool = view().substr(constant_prefix.size()).starts_with(reachable_mangle);
+    is_const_metafunction: (this) -> bool =
+                                   view().substr(constant_prefix.size())
+                                         .substr(unsigned(is_reachable()) * reachable_mangle.size())
+                                         .starts_with(const_metafunction_mangle);
 }
 
-symbol_without_prefix: (copy sym: std::string_view)
-    -> std::string_view
-    pre(sym.starts_with(symbol_prefix()))
-= {
-    sym.remove_prefix(symbol_prefix().size());
-    if sym.starts_with("r_") {
-        sym.remove_prefix(2);
-    }
-    return sym;
-}
-
-symbol_is_reachable: (sym: std::string_view)
-    -> bool
-    pre(sym.starts_with(symbol_prefix()))
-    = sym.substr(symbol_prefix().size()).starts_with("r_");
-
-symbols_accessor: (lib_path: std::string_view) -> std::string =
-    "(symbol_prefix())$get_symbol_names_(to_lower_and_collapsed_underbar(lib_path, true, true))$";
+symbols_accessor: (lib_path: std::string_view)
+    -> dll_symbol
+    = dll_symbol("get_symbol_names_(to_lower_and_collapsed_underbar(lib_path, true, true))$");
 
 //  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
-//  is read and interpreted as the Cpp2 metafunction library path of this invocation
-this_symbols_accessor: () -> std::string
+//  is read and interpreted as the Cpp2 metafunction library path of this execution
+this_execution: namespace =
+{
+
+symbols_accessor: ()
+    -> dll_symbol
 = {
     env_var :== "CPPFRONT_METAFUNCTION_LIBRARY";
     lib_path := std::getenv(env_var);
     assert(lib_path && lib_path[0] != '\0', "(env_var)$ should be set for a Cpp2 source with metafunctions");
     // FIXME Doesn't work for a library with more than one source providing a metafunction
     // See https://github.com/hsutter/cppfront/pull/907#issuecomment-1872644205
-    return symbols_accessor(lib_path);
+    return meta::symbols_accessor(lib_path);
+}
+
 }
 
 
@@ -86,7 +118,6 @@ this_symbols_accessor: () -> std::string
 //
 //  expected with diagnostic to return to apply_metafunctions
 //
-
 diagnostic: @struct type = {
     value: std::string;
 }
@@ -115,6 +146,70 @@ expected: @union <T> type = {
 
 namespace cpp2::meta {
 
+
+//-----------------------------------------------------------------------
+//
+//  (de)mangling
+//
+auto mangle(std::string res)
+    -> std::string
+{
+    //  Mangle (id length, id) pairs according to
+    //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
+    //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
+    auto xpos = res.size();
+    auto prev_id_end = xpos;
+    while ((xpos = res.find_last_of(':', xpos)) != res.npos)
+    {
+        res.replace(xpos - 1, 2, std::to_string(prev_id_end - xpos - 1));
+        prev_id_end = xpos - 1;
+    }
+
+    return res;
+}
+
+auto mangle(declaration_node const& n)
+    -> std::string
+{
+    assert(n.identifier);
+    assert(n.identifier->template_arguments().empty());
+    assert(n.parent_is_namespace());
+
+    return mangle(n.fully_qualified_name());
+}
+
+auto demangle(std::string_view s)
+    -> std::string
+{
+    std::string res{};
+
+    //  Demangle (id length, id) pairs according to
+    //  https://en.wikipedia.org/wiki/Name_mangling#Complex_example
+    //  "... by the GNU GCC 3.x compilers, according to the IA-64 (Itanium) ABI"
+    while (!s.empty())
+    {
+        auto length = s.substr(0, s.find_first_not_of("0123456789"));
+        s.remove_prefix(length.size());
+        auto id = s.substr(0, unsafe_narrow<unsigned>(std::stoi(std::string{length})));
+        s.remove_prefix(id.size());
+
+        assert(!length.empty());
+        assert(!id.empty());
+
+        res += id;
+        if (!s.empty()) {
+            res += "::";
+        }
+    }
+
+    return res;
+}
+
+
+//-----------------------------------------------------------------------
+//
+//  dll Load DLL and its symbols with the OS API
+//
 class dll
 {
 public:
@@ -196,10 +291,14 @@ private:
 };
 
 
+//-----------------------------------------------------------------------
+//
+//  get_reachable_metafunction_symbols
+//
 struct library
 {
     std::string_view name;
-    std::vector<std::string> symbols;
+    std::vector<dll_symbol> symbols;
 };
 
 //  Load Cpp2 libraries with metafunctions by opening DLL with the OS API
@@ -231,26 +330,20 @@ std::span<library> get_reachable_metafunction_symbols()
             auto lib_path = cpp1_libraries.substr(0, colon);
             cpp1_libraries.remove_prefix(lib_path.size() + unsigned(colon != lib_path.npos));
 
-            auto report_invalid_symbols_accessor = [&](std::string const& what) {
-                Default.report_violation(
-                    ("Cpp2 metafunction symbols accesor " + what + " (in '" + std::string{lib_path} + "')").c_str()
-                );
-            };
-            auto lib = std::make_shared<dll>(std::string(lib_path));
+            auto lib = std::make_shared<dll>(std::string{lib_path});
 
-            auto get_symbols = lib->get_alias<char const**()>(symbols_accessor(lib_path));
+            auto get_symbols = lib->get_alias<char const**()>(symbols_accessor(lib_path).c_str());
 
             res.push_back({lib_path, {}});
             auto c_strings = get_symbols();
             if (!c_strings || !*c_strings) {
-                report_invalid_symbols_accessor("returns no symbols");
+                Default.report_violation(
+                    ("symbols accesor returns no symbols (in '" + std::string{lib_path} + "')").c_str()
+                );
             }
 
             for (; *c_strings; ++c_strings) {
                 auto symbol = res.back().symbols.emplace_back(*c_strings);
-                if (!symbol.starts_with(symbol_prefix())) {
-                    report_invalid_symbols_accessor("returns invalid symbol '" + std::string{symbol} + "'");
-                }
             }
         }
 
@@ -261,9 +354,13 @@ std::span<library> get_reachable_metafunction_symbols()
 }
 
 
+//-----------------------------------------------------------------------
+//
+//  load_metafunction
+//
 struct lookup_res {
     std::string_view library;
-    std::string_view symbol;
+    dll_symbol const* symbol;
 };
 
 using load_metafunction_ret = std::function<void(type_declaration&)>;
@@ -284,7 +381,7 @@ auto load_metafunction(
             auto lib = std::make_shared<dll>(std::string(lib_path));
             return load_metafunction_ret{
                 [
-                 fun = lib->get_alias<void(type_declaration&)>(std::string{cpp1_name}),
+                 fun = lib->get_alias<void(type_declaration&)>(cpp1_name->c_str()),
                  lib = std::move(lib)
                  ]
                 (type_declaration& t)
