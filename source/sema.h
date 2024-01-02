@@ -32,8 +32,6 @@ auto lookup_metafunction(
     )
     -> meta::expected<meta::lookup_res>
 {
-    auto res = meta::lookup_res{};
-
     struct scope_t {
         std::string fully_qualified_mangled_name;
         current_names_span::pointer names_first;
@@ -101,12 +99,12 @@ auto lookup_metafunction(
         }
     }
 
-    //  Case not yet handled.
-    if (res.library.empty()) {
-        return meta::diagnostic{"(ICE) metafunction '" + name + "' not found"};
-    }
-    // else
-    return res;
+    return meta::diagnostic{
+        "metafunction '" + name + "' not found\n"
+        + "(temporary alpha limitation) lookup for a metafunction name is limited: "
+        + "it can be used unqualified from its declaring namespace or a nested namespace thereof, "
+        + "and otherwise requires full qualification"
+    };
 }
 
 auto parser::apply_type_metafunctions( declaration_node& n )
