@@ -76,7 +76,7 @@ auto lookup_metafunction(
     }
 
     //  Lookup the name
-    auto libraries = meta::get_reachable_metafunction_symbols();
+    auto libraries = meta::this_execution::get_reachable_metafunction_symbols();
     auto mangled_name = meta::mangle((name.starts_with("::") ? "" : "::") + name);
     for (auto const& scope : scopes)
     {

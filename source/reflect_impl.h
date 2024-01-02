@@ -39,15 +39,15 @@ template<typename T> class expected;
 
 }
 
-#line 402 "reflect_impl.h2"
+#line 406 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 414 "reflect_impl.h2"
+#line 418 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 627 "reflect_impl.h2"
+#line 631 "reflect_impl.h2"
 }
 
 }
@@ -348,6 +348,8 @@ struct library
     std::vector<dll_symbol> symbols;
 };
 
+namespace this_execution {
+
 //  Load Cpp2 libraries with metafunctions by opening DLL with the OS API
 //
 //  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
@@ -379,7 +381,7 @@ std::span<library> get_reachable_metafunction_symbols()
 
             auto lib = std::make_shared<dll>(std::string{lib_path});
 
-            auto get_symbols = lib->get_alias<char const**()>(symbols_accessor(lib_path).c_str());
+            auto get_symbols = lib->get_alias<char const**()>(meta::symbols_accessor(lib_path).c_str());
 
             res.push_back({lib_path, {}});
             auto c_strings = get_symbols();
@@ -398,6 +400,8 @@ std::span<library> get_reachable_metafunction_symbols()
     }();
 
     return res;
+}
+
 }
 
 
@@ -443,12 +447,12 @@ auto load_metafunction(
 
 }
 
-#line 402 "reflect_impl.h2"
+#line 406 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 407 "reflect_impl.h2"
+#line 411 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -476,10 +480,10 @@ class compiler_services_data
         cpp2::in<bool> source_has_source_interface
     ) -> compiler_services_data;
 
-#line 440 "reflect_impl.h2"
+#line 444 "reflect_impl.h2"
 };
 
-#line 443 "reflect_impl.h2"
+#line 447 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -491,14 +495,14 @@ class compiler_services_data
     auto const& lookup
     ) -> bool;
 
-#line 561 "reflect_impl.h2"
+#line 565 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 627 "reflect_impl.h2"
+#line 631 "reflect_impl.h2"
 }
 
 }
@@ -700,12 +704,12 @@ template <typename T> expected<T>::expected(expected const& that)
 
 }
 
-#line 402 "reflect_impl.h2"
+#line 406 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 428 "reflect_impl.h2"
+#line 432 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_, 
@@ -719,7 +723,7 @@ namespace meta {
                 cpp2::parser(*cpp2::assert_not_null(errors_), source_has_source_interface) }; 
     }
 
-#line 447 "reflect_impl.h2"
+#line 451 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -808,7 +812,7 @@ namespace meta {
 {
 auto const& load = load_metafunction(name, lookup);
 
-#line 533 "reflect_impl.h2"
+#line 537 "reflect_impl.h2"
             if (CPP2_UFCS(is_value)(load)) {
                 CPP2_UFCS(value)(load)(rtype);
             }else {
@@ -822,7 +826,7 @@ auto const& load = load_metafunction(name, lookup);
                 return false; 
             }
 }
-#line 545 "reflect_impl.h2"
+#line 549 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -838,7 +842,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 561 "reflect_impl.h2"
+#line 565 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -904,7 +908,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 627 "reflect_impl.h2"
+#line 631 "reflect_impl.h2"
 }
 
 }

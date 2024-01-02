@@ -303,6 +303,8 @@ struct library
     std::vector<dll_symbol> symbols;
 };
 
+namespace this_execution {
+
 //  Load Cpp2 libraries with metafunctions by opening DLL with the OS API
 //
 //  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARIES'
@@ -334,7 +336,7 @@ std::span<library> get_reachable_metafunction_symbols()
 
             auto lib = std::make_shared<dll>(std::string{lib_path});
 
-            auto get_symbols = lib->get_alias<char const**()>(symbols_accessor(lib_path).c_str());
+            auto get_symbols = lib->get_alias<char const**()>(meta::symbols_accessor(lib_path).c_str());
 
             res.push_back({lib_path, {}});
             auto c_strings = get_symbols();
@@ -353,6 +355,8 @@ std::span<library> get_reachable_metafunction_symbols()
     }();
 
     return res;
+}
+
 }
 
 
