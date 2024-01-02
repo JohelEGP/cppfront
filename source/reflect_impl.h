@@ -471,7 +471,7 @@ class compiler_services_data
     public: [[nodiscard]] static auto make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_, 
-        cpp2::in<bool> source_has_source_interface
+        cpp2::in<bool> translation_unit_has_interface
     ) -> compiler_services_data;
 
 #line 438 "reflect_impl.h2"
@@ -707,14 +707,14 @@ namespace meta {
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_, 
-        cpp2::in<bool> source_has_source_interface
+        cpp2::in<bool> translation_unit_has_interface
     ) -> compiler_services_data
 
     {
         return { errors_, 
                 cpp2::unsafe_narrow<int>(std::ssize(*cpp2::assert_not_null(errors_))), 
                 generated_tokens_, 
-                cpp2::parser(*cpp2::assert_not_null(errors_), source_has_source_interface) }; 
+                cpp2::parser(*cpp2::assert_not_null(errors_), translation_unit_has_interface) }; 
     }
 
 #line 445 "reflect_impl.h2"

@@ -424,16 +424,16 @@ compiler_services_data: @struct type =
     //  Make function
     //
     make: (
-        errors_                    : *std::vector<error_entry>,
-        generated_tokens_          : *std::deque<token>,
-        source_has_source_interface: bool
+        errors_                       : *std::vector<error_entry>,
+        generated_tokens_             : *std::deque<token>,
+        translation_unit_has_interface: bool
     )
         -> compiler_services_data
     = {
         return (errors_,
                 cpp2::unsafe_narrow<int>(std::ssize(errors_*)),
                 generated_tokens_,
-                cpp2::parser(errors_*, source_has_source_interface));
+                cpp2::parser(errors_*, translation_unit_has_interface));
     }
 }
 
