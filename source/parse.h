@@ -5415,8 +5415,10 @@ public:
     //
     parser( std::vector<error_entry>& errors_, bool translation_unit_has_interface_ )
         : errors{ errors_ }
-        , parse_tree{std::make_unique<translation_unit_node>(translation_unit_has_interface_)}
-    { }
+        , parse_tree{std::make_unique<translation_unit_node>()}
+    {
+        parse_tree->has_interface = translation_unit_has_interface_;
+    }
 
     parser( parser const& that )
         : errors{ that.errors }
