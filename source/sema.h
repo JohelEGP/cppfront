@@ -88,14 +88,26 @@ auto lookup_metafunction(
             }
         }
 
+        //  Save a const overload
+        auto res = meta::lookup_res{};
         for (auto&& lib: libraries)
         {
             for (auto&& sym: lib.symbols)
             {
-                if (sym.without_prefix() == expected_symbol) {
-                    return {{lib.name, &sym}};
+                if (sym.without_prefix() == expected_symbol)
+                {
+                    res = {lib.name, &sym};
+                    //  Immediately return a non-const overload
+                    if (!sym.is_const_metafunction()) {
+                        return res;
+                    }
                 }
             }
+        }
+
+        //  Return a const overload without a non-const overload
+        if (!res.library.empty()) {
+            return res;
         }
     }
 
@@ -133,7 +145,7 @@ auto parser::apply_type_metafunctions( declaration_node& n )
             {
                 auto check = std::string{};
                 check += "static_assert(";
-                check += meta::to_type_metafunction_cast(name);
+                check += meta::to_type_metafunction_cast(name, res.value().symbol->is_const_metafunction());
                 check += " == ";
                 check += res.value().symbol->view();
                 check += ", ";

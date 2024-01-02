@@ -2244,6 +2244,9 @@ struct function_type_node
     auto is_metafunction() const
         -> bool;
 
+    auto is_const_metafunction() const
+        -> bool;
+
     auto has_declared_return_type() const
         -> bool
     {
@@ -3508,6 +3511,16 @@ public:
         return false;
     }
 
+    auto is_const_metafunction() const
+      -> bool
+    {
+        if (auto func = std::get_if<a_function>(&type)) {
+            return (*func)->is_const_metafunction();
+        }
+        //  else
+        return false;
+    }
+
     auto is_binary_comparison_function() const
         -> bool
     {
@@ -3975,12 +3988,23 @@ auto function_type_node::is_metafunction() const
     if (
         (*parameters).ssize() == 1
         && this->nth_parameter_type_name(1) == "cpp2::meta::type_declaration"
-        && (*parameters)[0]->direction() == passing_style::inout
+        && (
+            (*parameters)[0]->direction() == passing_style::in
+            || (*parameters)[0]->direction() == passing_style::inout
+            )
         )
     {
         return true;
     }
     return false;
+}
+
+
+auto function_type_node::is_const_metafunction() const
+    -> bool
+{
+    return is_metafunction()
+           && (*parameters)[0]->direction() == passing_style::in;
 }
 
 

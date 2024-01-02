@@ -33,8 +33,18 @@ cpp2: namespace = {
 meta: namespace = {
 
 
-to_type_metafunction_cast: (name: std::string_view) -> std::string =
-    "static_cast<void(*)(cpp2::meta::type_declaration&)>((name)$)";
+to_type_metafunction_cast: (
+    name: std::string_view,
+    is_const_metafunction: bool
+    )
+    -> std::string
+= {
+    const_ := "";
+    if is_const_metafunction {
+        const_ = " const";
+    }
+    return "static_cast<void(*)(cpp2::meta::type_declaration(const_)$&)>((name)$)";
+}
 
 
 //-----------------------------------------------------------------------
@@ -52,13 +62,13 @@ dll_symbol: @value type = {
     operator=: (out this, n: declaration_node, is_reachable_: bool)
         pre(n.is_metafunction())
         post(is_reachable() == is_reachable_)
-        post(is_const_metafunction() == false)
+        post(is_const_metafunction() == n.is_const_metafunction())
     = {
         value = constant_prefix;
         if is_reachable_ {
             value += reachable_mangle;
         }
-        if false {
+        if n.is_const_metafunction() {
             value += const_metafunction_mangle;
         }
         value += mangle(n);

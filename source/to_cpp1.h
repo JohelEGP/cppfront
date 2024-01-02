@@ -6326,7 +6326,7 @@ public:
                         std::string{"\nCPP2_C_API constexpr auto "}
                         + metafunction_symbols.back().name.view()
                         + " = "
-                        + meta::to_type_metafunction_cast(n.fully_qualified_name())
+                        + meta::to_type_metafunction_cast(n.fully_qualified_name(), n.is_const_metafunction())
                         + ";";
                 }
 

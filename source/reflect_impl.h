@@ -15,39 +15,39 @@ namespace cpp2 {
 
 namespace meta {
 
-#line 44 "reflect_impl.h2"
+#line 54 "reflect_impl.h2"
 class dll_symbol;
     
 
-#line 100 "reflect_impl.h2"
+#line 110 "reflect_impl.h2"
 namespace this_execution
  {
 
-#line 116 "reflect_impl.h2"
+#line 126 "reflect_impl.h2"
 }
 
-#line 123 "reflect_impl.h2"
+#line 133 "reflect_impl.h2"
 class diagnostic;
     
 
-#line 127 "reflect_impl.h2"
+#line 137 "reflect_impl.h2"
 template<typename T> class expected;
     
 
-#line 144 "reflect_impl.h2"
+#line 154 "reflect_impl.h2"
 }
 
 }
 
-#line 400 "reflect_impl.h2"
+#line 410 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 412 "reflect_impl.h2"
+#line 422 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 625 "reflect_impl.h2"
+#line 635 "reflect_impl.h2"
 }
 
 }
@@ -91,9 +91,12 @@ namespace cpp2 {
 namespace meta {
 
 #line 36 "reflect_impl.h2"
-[[nodiscard]] auto to_type_metafunction_cast(cpp2::in<std::string_view> name) -> std::string;
+[[nodiscard]] auto to_type_metafunction_cast(
+    cpp2::in<std::string_view> name, 
+    cpp2::in<bool> is_const_metafunction
+    ) -> std::string;
 
-#line 40 "reflect_impl.h2"
+#line 50 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  dll_symbol
@@ -108,17 +111,17 @@ class dll_symbol {
     public: dll_symbol();
     public: explicit dll_symbol(cpp2::in<declaration_node> n, cpp2::in<bool> is_reachable_);
 
-#line 66 "reflect_impl.h2"
+#line 76 "reflect_impl.h2"
     public: explicit dll_symbol(std::string_view s);
-#line 66 "reflect_impl.h2"
+#line 76 "reflect_impl.h2"
     public: auto operator=(std::string_view s) -> dll_symbol& ;
 
-#line 74 "reflect_impl.h2"
+#line 84 "reflect_impl.h2"
     public: [[nodiscard]] auto c_str() const& -> char const*;
     public: [[nodiscard]] auto view() const& -> std::string_view;
     public: [[nodiscard]] auto without_prefix() const& -> std::string_view;
 
-#line 89 "reflect_impl.h2"
+#line 99 "reflect_impl.h2"
     public: [[nodiscard]] auto is_reachable() const& -> bool;
     public: [[nodiscard]] auto is_const_metafunction() const& -> bool;
     public: [[nodiscard]] auto operator<=>(dll_symbol const& that) const& -> std::strong_ordering = default;
@@ -128,12 +131,12 @@ public: auto operator=(dll_symbol const& that) -> dll_symbol& ;
 public: dll_symbol(dll_symbol&& that) noexcept;
 public: auto operator=(dll_symbol&& that) noexcept -> dll_symbol& ;
 
-#line 94 "reflect_impl.h2"
+#line 104 "reflect_impl.h2"
 };
 
 [[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> dll_symbol;
 
-#line 100 "reflect_impl.h2"
+#line 110 "reflect_impl.h2"
 namespace this_execution
  {
 
@@ -141,10 +144,10 @@ namespace this_execution
 //  is read and interpreted as the Cpp2 metafunction library path of this execution
 [[nodiscard]] auto symbols_accessor() -> dll_symbol;
 
-#line 116 "reflect_impl.h2"
+#line 126 "reflect_impl.h2"
 }
 
-#line 119 "reflect_impl.h2"
+#line 129 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  expected with diagnostic to return to apply_metafunctions
@@ -155,12 +158,12 @@ class diagnostic {
 
 template<typename T> class expected {
 
-#line 131 "reflect_impl.h2"
+#line 141 "reflect_impl.h2"
     public: expected(T const& v);
-#line 131 "reflect_impl.h2"
+#line 141 "reflect_impl.h2"
     public: auto operator=(T const& v) -> expected& ;
     public: expected(cpp2::in<diagnostic> u);
-#line 132 "reflect_impl.h2"
+#line 142 "reflect_impl.h2"
     public: auto operator=(cpp2::in<diagnostic> u) -> expected& ;
 
     public: template<typename F> [[nodiscard]] auto and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>;
@@ -183,7 +186,7 @@ public: expected(expected&& that) noexcept;
 public: auto operator=(expected const& that) -> expected& ;
 public: auto operator=(expected&& that) noexcept -> expected& ;
 
-#line 142 "reflect_impl.h2"
+#line 152 "reflect_impl.h2"
 };
 
 }
@@ -441,12 +444,12 @@ auto load_metafunction(
 
 }
 
-#line 400 "reflect_impl.h2"
+#line 410 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 405 "reflect_impl.h2"
+#line 415 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -474,10 +477,10 @@ class compiler_services_data
         cpp2::in<bool> translation_unit_has_interface
     ) -> compiler_services_data;
 
-#line 438 "reflect_impl.h2"
+#line 448 "reflect_impl.h2"
 };
 
-#line 441 "reflect_impl.h2"
+#line 451 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -489,14 +492,14 @@ class compiler_services_data
     auto const& lookup
     ) -> bool;
 
-#line 559 "reflect_impl.h2"
+#line 569 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 625 "reflect_impl.h2"
+#line 635 "reflect_impl.h2"
 }
 
 }
@@ -515,10 +518,20 @@ namespace cpp2 {
 namespace meta {
 
 #line 36 "reflect_impl.h2"
-[[nodiscard]] auto to_type_metafunction_cast(cpp2::in<std::string_view> name) -> std::string { 
-    return "static_cast<void(*)(cpp2::meta::type_declaration&)>(" + cpp2::to_string(name) + ")";  }
+[[nodiscard]] auto to_type_metafunction_cast(
+    cpp2::in<std::string_view> name, 
+    cpp2::in<bool> is_const_metafunction
+    ) -> std::string
 
-#line 47 "reflect_impl.h2"
+{
+    auto const_ {""}; 
+    if (is_const_metafunction) {
+        const_ = " const";
+    }
+    return "static_cast<void(*)(cpp2::meta::type_declaration" + cpp2::to_string(std::move(const_)) + "&)>(" + cpp2::to_string(name) + ")"; 
+}
+
+#line 57 "reflect_impl.h2"
     inline CPP2_CONSTEXPR std::string_view dll_symbol::constant_prefix = "cpp2_metafunction_";
     inline CPP2_CONSTEXPR std::string_view dll_symbol::reachable_mangle = "r";
     inline CPP2_CONSTEXPR std::string_view dll_symbol::const_metafunction_mangle = "c";
@@ -527,18 +540,18 @@ namespace meta {
     dll_symbol::dll_symbol(cpp2::in<declaration_node> n, cpp2::in<bool> is_reachable_)
         : value{ constant_prefix }
 
-#line 56 "reflect_impl.h2"
+#line 66 "reflect_impl.h2"
     {
         cpp2::finally_presuccess cpp2_finally_presuccess;
         if (cpp2::Default.has_handler() && !(CPP2_UFCS(is_metafunction)(n)) ) { cpp2::Default.report_violation(""); }
         cpp2_finally_presuccess.add([&]{if (cpp2::Default.has_handler() && !(is_reachable() == is_reachable_) ) { cpp2::Default.report_violation(""); }} );
-        cpp2_finally_presuccess.add([&]{if (cpp2::Default.has_handler() && !(is_const_metafunction() == false) ) { cpp2::Default.report_violation(""); }} );
+        cpp2_finally_presuccess.add([&]{if (cpp2::Default.has_handler() && !(is_const_metafunction() == CPP2_UFCS(is_const_metafunction)(n)) ) { cpp2::Default.report_violation(""); }} );
 
-#line 58 "reflect_impl.h2"
+#line 68 "reflect_impl.h2"
         if (is_reachable_) {
             value += reachable_mangle;
         }
-        if (false) {
+        if (CPP2_UFCS(is_const_metafunction)(n)) {
             value += const_metafunction_mangle;
         }
         value += mangle(n);
@@ -550,17 +563,17 @@ namespace meta {
         }
         value += std::move(s);
     }
-#line 66 "reflect_impl.h2"
+#line 76 "reflect_impl.h2"
     auto dll_symbol::operator=(std::string_view s) -> dll_symbol& 
     {
         value = {};
-#line 68 "reflect_impl.h2"
+#line 78 "reflect_impl.h2"
         if (!(CPP2_UFCS(starts_with)(s, constant_prefix))) {
             value += constant_prefix;
         }
         value += std::move(s);
         return *this;
-#line 72 "reflect_impl.h2"
+#line 82 "reflect_impl.h2"
     }
 
     [[nodiscard]] auto dll_symbol::c_str() const& -> char const* { return CPP2_UFCS(c_str)(value);  }
@@ -596,7 +609,7 @@ dll_symbol::dll_symbol(dll_symbol&& that) noexcept
 auto dll_symbol::operator=(dll_symbol&& that) noexcept -> dll_symbol& {
                                 value = std::move(that).value;
                                 return *this;}
-#line 96 "reflect_impl.h2"
+#line 106 "reflect_impl.h2"
 [[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> dll_symbol { 
 
     return dll_symbol("get_symbol_names_" + cpp2::to_string(to_lower_and_collapsed_underbar(lib_path, true, true)));  }
@@ -604,7 +617,7 @@ auto dll_symbol::operator=(dll_symbol&& that) noexcept -> dll_symbol& {
 namespace this_execution
  {
 
-#line 105 "reflect_impl.h2"
+#line 115 "reflect_impl.h2"
 [[nodiscard]] auto symbols_accessor() -> dll_symbol
 
 {
@@ -618,22 +631,22 @@ namespace this_execution
 
 }
 
-#line 131 "reflect_impl.h2"
+#line 141 "reflect_impl.h2"
     template <typename T> expected<T>::expected(T const& v) { set_value(v);  }
-#line 131 "reflect_impl.h2"
+#line 141 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(T const& v) -> expected&  { 
                                            _storage = {};
                                            _discriminator = -1; set_value(v);
                                            return *this;  }
-#line 132 "reflect_impl.h2"
+#line 142 "reflect_impl.h2"
     template <typename T> expected<T>::expected(cpp2::in<diagnostic> u) { set_error(u);  }
-#line 132 "reflect_impl.h2"
+#line 142 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(cpp2::in<diagnostic> u) -> expected&  { 
                                                     _storage = {};
                                                     _discriminator = -1; set_error(u);
                                                     return *this;  }
 
-#line 134 "reflect_impl.h2"
+#line 144 "reflect_impl.h2"
     template <typename T> template<typename F> [[nodiscard]] auto expected<T>::and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>{
         if (is_value()) {
             return f(value()); 
@@ -693,17 +706,17 @@ template <typename T> expected<T>::expected(expected const& that)
     if (CPP2_UFCS(is_error)(std::move(that))) {set_error(CPP2_UFCS(error)(std::move(that)));}
         return *this;
     }
-#line 144 "reflect_impl.h2"
+#line 154 "reflect_impl.h2"
 }
 
 }
 
-#line 400 "reflect_impl.h2"
+#line 410 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 426 "reflect_impl.h2"
+#line 436 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_, 
@@ -717,7 +730,7 @@ namespace meta {
                 cpp2::parser(*cpp2::assert_not_null(errors_), translation_unit_has_interface) }; 
     }
 
-#line 445 "reflect_impl.h2"
+#line 455 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -806,7 +819,7 @@ namespace meta {
 {
 auto const& load = load_metafunction(name, lookup);
 
-#line 531 "reflect_impl.h2"
+#line 541 "reflect_impl.h2"
             if (CPP2_UFCS(is_value)(load)) {
                 CPP2_UFCS(value)(load)(rtype);
             }else {
@@ -820,7 +833,7 @@ auto const& load = load_metafunction(name, lookup);
                 return false; 
             }
 }
-#line 543 "reflect_impl.h2"
+#line 553 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -836,7 +849,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 559 "reflect_impl.h2"
+#line 569 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -902,7 +915,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 625 "reflect_impl.h2"
+#line 635 "reflect_impl.h2"
 }
 
 }
