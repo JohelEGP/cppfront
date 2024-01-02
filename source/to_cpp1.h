@@ -6069,7 +6069,6 @@ public:
                     }
                     else if (this_->pass == passing_style::move) {
                         suffix1 += " &&";
-
                     }
                     //  We shouldn't be able to get into a state where these values
                     //  exist here, if we did it's our compiler bug
