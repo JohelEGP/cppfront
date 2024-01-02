@@ -1120,7 +1120,9 @@ inline constexpr auto is( auto const& x, auto&& value ) -> bool
     else if constexpr (requires{ bool{x == value}; }) {
         return x == value;
     }
-    return false;
+    else {
+        return false;
+    }
 }
 
 
