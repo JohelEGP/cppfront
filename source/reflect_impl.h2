@@ -74,14 +74,16 @@ dll_symbol: @value type = {
     c_str: (this) -> *const char = value.c_str();
     view: (this) -> std::string_view = value;
     without_prefix: (this)
-        -> (res: std::string_view = view())
+        -> std::string_view
     = {
+        res := view();
         res.remove_prefix(constant_prefix.size());
         for (reachable_mangle, const_metafunction_mangle)
         do  (m)
         if res.starts_with(m) {
             res.remove_prefix(m.size());
         }
+        return res;
     }
 
     is_reachable: (this) -> bool = view().substr(constant_prefix.size()).starts_with(reachable_mangle);
