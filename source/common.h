@@ -12,7 +12,7 @@
 
 
 #ifdef _MSC_VER
-#pragma warning(disable: 4456)
+#pragma warning(disable: 4251 4456)
 #endif
 
 #include "cpp2util.h"
