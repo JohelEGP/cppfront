@@ -5663,7 +5663,7 @@ public:
         if (
             printer.get_phase() != printer.phase0_type_decls
             && n.is_function()
-            && n.is_visible()
+            && n.is_dll_visible()
             )
         {
             printer.print_cpp2("CPPFRONTAPI ", n.position());
@@ -5728,7 +5728,7 @@ public:
                 //  emit the portable macro that makes it visible
                 if (
                     printer.get_phase() == printer.phase1_type_defs_func_decls
-                    && n.is_visible()
+                    && n.is_dll_visible()
                     )
                 {
                     printer.print_cpp2("CPPFRONTAPI ", n.position());

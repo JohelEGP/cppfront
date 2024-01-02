@@ -336,8 +336,8 @@ declaration_base::declaration_base(declaration_base const& that)
     [[nodiscard]] auto declaration::make_protected() & -> bool { return CPP2_UFCS(make_protected)((*cpp2::assert_not_null(n))); }
     [[nodiscard]] auto declaration::make_private() & -> bool { return CPP2_UFCS(make_private)((*cpp2::assert_not_null(n))); }
 
-    [[nodiscard]] auto declaration::is_visible() const& -> bool { return CPP2_UFCS(is_visible)((*cpp2::assert_not_null(n))); }
-    [[nodiscard]] auto declaration::make_visible() & -> bool { return CPP2_UFCS(make_visible)((*cpp2::assert_not_null(n)));  }
+    [[nodiscard]] auto declaration::is_dll_visible() const& -> bool { return CPP2_UFCS(is_dll_visible)((*cpp2::assert_not_null(n))); }
+    [[nodiscard]] auto declaration::make_dll_visible() & -> bool { return CPP2_UFCS(make_dll_visible)((*cpp2::assert_not_null(n)));  }
 
     [[nodiscard]] auto declaration::has_name() const& -> bool { return CPP2_UFCS(has_name)((*cpp2::assert_not_null(n))); }
     [[nodiscard]] auto declaration::has_name(cpp2::in<std::string_view> s) const& -> bool { return CPP2_UFCS(has_name)((*cpp2::assert_not_null(n)), s); }
@@ -1242,15 +1242,15 @@ CPPFRONTAPI auto print(cpp2::in<meta::type_declaration> t) -> void
 }
 
 #line 1403 "reflect.h2"
-CPPFRONTAPI auto visible(meta::type_declaration& t) -> void
+CPPFRONTAPI auto dll_visible(meta::type_declaration& t) -> void
 {
-    CPP2_UFCS(require)(t, CPP2_UFCS(make_visible)(t), 
-               "visible can only be applied to a namespace-scope name");
+    CPP2_UFCS(require)(t, CPP2_UFCS(make_dll_visible)(t), 
+               "dll_visible can only be applied to a namespace-scope name");
 }
-CPPFRONTAPI auto visible(meta::function_declaration& t) -> void
+CPPFRONTAPI auto dll_visible(meta::function_declaration& t) -> void
 {
-    CPP2_UFCS(require)(t, CPP2_UFCS(make_visible)(t), 
-               "visible can only be applied to a namespace-scope name");
+    CPP2_UFCS(require)(t, CPP2_UFCS(make_dll_visible)(t), 
+               "dll_visible can only be applied to a namespace-scope name");
 }
 
 #line 1415 "reflect.h2"

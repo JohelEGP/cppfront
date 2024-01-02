@@ -2537,7 +2537,7 @@ struct declaration_node
     source_position                      pos;
     bool                                 is_variadic = false;
     bool                                 is_constexpr = false;
-    bool                                 is_visible_ = false;
+    bool                                 is_dll_visible_ = false;
     bool                                 terse_no_equals = false;
     std::unique_ptr<unqualified_id_node> identifier;
     accessibility                        access = accessibility::default_;
@@ -2712,19 +2712,19 @@ public:
         return set_access( accessibility::private_ );
     }
 
-    auto is_visible() const
+    auto is_dll_visible() const
         -> bool
     {
-        return is_visible_;
+        return is_dll_visible_;
     }
 
-    auto make_visible()
+    auto make_dll_visible()
         -> bool
     {
         if (!parent_is_namespace()) {
             return false;
         }
-        return is_visible_ = true;
+        return is_dll_visible_ = true;
     }
 
     auto has_name() const

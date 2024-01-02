@@ -801,8 +801,8 @@ namespace meta {
         else {if (name == "print") {
             print(rtype);
         }
-        else {if (name == "visible") {
-            visible(rtype);
+        else {if (name == "dll_visible") {
+            dll_visible(rtype);
         }
         else {
 {
@@ -814,7 +814,7 @@ auto const& load = load_metafunction(name, lookup);
             }else {
                 error("unrecognized metafunction name: " + name);
                 if (CPP2_UFCS(find)(name, "::") == name.npos) {
-                    error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, visible");
+                    error("currently supported built-in names are: interface, polymorphic_base, ordered, weakly_ordered, partially_ordered, copyable, basic_value, value, weakly_ordered_value, partially_ordered_value, struct, enum, flag_enum, union, print, dll_visible");
                 }
                 if (!(CPP2_UFCS(empty)(CPP2_UFCS(error)(load).value))) {
                     error(CPP2_UFCS(error)(load).value);
@@ -874,8 +874,8 @@ auto const& load = load_metafunction(name, lookup);
 
         //  Dispatch
         //
-        if (name == "visible") {
-            visible(rfunction);
+        if (name == "dll_visible") {
+            dll_visible(rfunction);
         }
         else {
 //          (load := load_metafunction(name))
@@ -883,7 +883,7 @@ auto const& load = load_metafunction(name, lookup);
 //              load.metafunction( rfunction );
 //          } else {
                 error("unrecognized metafunction name: " + name);
-                error("currently supported built-in names are: visible");
+                error("currently supported built-in names are: dll_visible");
 //              if !load.error.empty() {
 //                  error( load.error );
 //              }

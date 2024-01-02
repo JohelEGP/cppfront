@@ -24,7 +24,7 @@ meta: namespace = {
 lineno_t: type == std::int32_t;
 colno_t: type == std::int32_t;   // not int16_t... encountered >80,000 char line during testing
 
-source_position: @visible @value type =
+source_position: @dll_visible @value type =
 {
     public lineno: lineno_t = 1;   // one-based offset into program source
     public colno: colno_t = 1;     // one-based offset into line
@@ -41,7 +41,7 @@ source_position: @visible @value type =
 }
 
 
-passing_style: @visible @enum type =
+passing_style: @dll_visible @enum type =
 {
     in;
     copy;
@@ -74,7 +74,7 @@ to_passing_style: (s: std::string_view) -> passing_style =
 //-----------------------------------------------------------------------
 //
 
-compiler_services: @visible @polymorphic_base @copyable type =
+compiler_services: @dll_visible @polymorphic_base @copyable type =
 {
     //  Common data members
     //
@@ -223,7 +223,7 @@ compiler_services: @visible @polymorphic_base @copyable type =
 
 //  All type_ids are wrappers around a pointer to node
 //
-type_id: @visible @polymorphic_base @copyable type =
+type_id: @dll_visible @polymorphic_base @copyable type =
 {
     this: compiler_services = ();
 
@@ -259,7 +259,7 @@ type_id: @visible @polymorphic_base @copyable type =
 
 //  All declarations are wrappers around a pointer to node
 //
-declaration_base: @visible @polymorphic_base @copyable type =
+declaration_base: @dll_visible @polymorphic_base @copyable type =
 {
     this: compiler_services = ();
 
@@ -301,7 +301,7 @@ declaration_base: @visible @polymorphic_base @copyable type =
 //-----------------------------------------------------------------------
 //  All declarations
 //
-declaration: @visible @polymorphic_base @copyable type =
+declaration: @dll_visible @polymorphic_base @copyable type =
 {
     this: declaration_base = ();
 
@@ -327,8 +327,8 @@ declaration: @visible @polymorphic_base @copyable type =
     make_protected   : (inout this) -> bool = n*.make_protected();
     make_private     : (inout this) -> bool = n*.make_private();
 
-    is_visible   : (this)       -> bool = n*.is_visible();
-    make_visible : (inout this) -> bool = n*.make_visible();
+    is_dll_visible   : (this)       -> bool = n*.is_dll_visible();
+    make_dll_visible : (inout this) -> bool = n*.make_dll_visible();
 
     has_name         : (this)                      -> bool = n*.has_name();
     has_name         : (this, s: std::string_view) -> bool = n*.has_name(s);
@@ -386,7 +386,7 @@ declaration: @visible @polymorphic_base @copyable type =
 //-----------------------------------------------------------------------
 //  Function declarations
 //
-function_declaration: @visible @copyable type =
+function_declaration: @dll_visible @copyable type =
 {
     this: declaration = ();
 
@@ -473,7 +473,7 @@ function_declaration: @visible @copyable type =
 //-----------------------------------------------------------------------
 //  Object declarations
 //
-object_declaration: @visible @copyable type =
+object_declaration: @dll_visible @copyable type =
 {
     this: declaration = ();
 
@@ -509,7 +509,7 @@ object_declaration: @visible @copyable type =
 //-----------------------------------------------------------------------
 //  Type declarations
 //
-type_declaration: @visible @copyable type =
+type_declaration: @dll_visible @copyable type =
 {
     this: declaration = ();
 
@@ -644,7 +644,7 @@ type_declaration: @visible @copyable type =
 //-----------------------------------------------------------------------
 //  Alias declarations
 //
-alias_declaration: @visible @copyable type =
+alias_declaration: @dll_visible @copyable type =
 {
     this: declaration = ();
 
@@ -690,7 +690,7 @@ add_virtual_destructor: (inout t: meta::type_declaration) =
 //
 //  an abstract base class having only pure virtual functions
 //
-interface: @visible (inout t: meta::type_declaration) =
+interface: @dll_visible (inout t: meta::type_declaration) =
 {
     has_dtor := false;
 
@@ -736,7 +736,7 @@ interface: @visible (inout t: meta::type_declaration) =
 //
 //  Unlike an interface, it can have nonpublic and nonvirtual functions.
 //
-polymorphic_base: @visible (inout t: meta::type_declaration) =
+polymorphic_base: @dll_visible (inout t: meta::type_declaration) =
 {
     has_dtor := false;
 
@@ -810,7 +810,7 @@ ordered_impl: (
 //
 //  Note: the ordering that should be encouraged as default gets the nice name
 //
-ordered: @visible (inout t: meta::type_declaration) =
+ordered: @dll_visible (inout t: meta::type_declaration) =
 {
     ordered_impl( t, "strong_ordering" );
 }
@@ -818,7 +818,7 @@ ordered: @visible (inout t: meta::type_declaration) =
 //-----------------------------------------------------------------------
 //  weakly_ordered - a weakly ordered type
 //
-weakly_ordered: @visible (inout t: meta::type_declaration) =
+weakly_ordered: @dll_visible (inout t: meta::type_declaration) =
 {
     ordered_impl( t, "weak_ordering" );
 }
@@ -826,7 +826,7 @@ weakly_ordered: @visible (inout t: meta::type_declaration) =
 //-----------------------------------------------------------------------
 //  partially_ordered - a partially ordered type
 //
-partially_ordered: @visible (inout t: meta::type_declaration) =
+partially_ordered: @dll_visible (inout t: meta::type_declaration) =
 {
     ordered_impl( t, "partial_ordering" );
 }
@@ -848,7 +848,7 @@ partially_ordered: @visible (inout t: meta::type_declaration) =
 //
 //  A type with (copy and move) x (construction and assignment)
 //
-copyable: @visible (inout t: meta::type_declaration) =
+copyable: @dll_visible (inout t: meta::type_declaration) =
 {
     //  If the user explicitly wrote any of the copy/move functions,
     //  they must also have written the most general one - we can't
@@ -876,7 +876,7 @@ copyable: @visible (inout t: meta::type_declaration) =
 //  A regular type: copyable, plus has public default construction
 //  and no protected or virtual functions
 //
-basic_value: @visible (inout t: meta::type_declaration) =
+basic_value: @dll_visible (inout t: meta::type_declaration) =
 {
     t.copyable();
 
@@ -904,19 +904,19 @@ basic_value: @visible (inout t: meta::type_declaration) =
 //
 //  Note: the ordering that should be encouraged as default gets the nice name
 //
-value: @visible (inout t: meta::type_declaration) =
+value: @dll_visible (inout t: meta::type_declaration) =
 {
     t.ordered();
     t.basic_value();
 }
 
-weakly_ordered_value: @visible (inout t: meta::type_declaration) =
+weakly_ordered_value: @dll_visible (inout t: meta::type_declaration) =
 {
     t.weakly_ordered();
     t.basic_value();
 }
 
-partially_ordered_value: @visible (inout t: meta::type_declaration) =
+partially_ordered_value: @dll_visible (inout t: meta::type_declaration) =
 {
     t.partially_ordered();
     t.basic_value();
@@ -948,7 +948,7 @@ partially_ordered_value: @visible (inout t: meta::type_declaration) =
 //  no virtual functions, and no user-defined constructors
 //  (i.e., no invariants) or assignment or destructors.
 //
-struct: @visible (inout t: meta::type_declaration) =
+struct: @dll_visible (inout t: meta::type_declaration) =
 {
     for t.get_members() do (inout m)
     {
@@ -1181,7 +1181,7 @@ basic_enum: (
 //
 //          -- P0707R4, section 3
 //
-enum: @visible (inout t: meta::type_declaration) =
+enum: @dll_visible (inout t: meta::type_declaration) =
 {
     //  Let basic_enum do its thing, with an incrementing value generator
     t.basic_enum(
@@ -1208,7 +1208,7 @@ enum: @visible (inout t: meta::type_declaration) =
 //
 //          -- P0707R4, section 3
 //
-flag_enum: @visible (inout t: meta::type_declaration) =
+flag_enum: @dll_visible (inout t: meta::type_declaration) =
 {
     //  Let basic_enum do its thing, with a power-of-two value generator
     t.basic_enum(
@@ -1254,7 +1254,7 @@ flag_enum: @visible (inout t: meta::type_declaration) =
 //  a type that contains exactly one of a fixed set of values at a time
 //
 
-union: @visible (inout t : meta::type_declaration)
+union: @dll_visible (inout t : meta::type_declaration)
 = {
     alternatives : std::vector<value_member_info> = ();
 
@@ -1390,7 +1390,7 @@ union: @visible (inout t : meta::type_declaration)
 //
 //  print - output a pretty-printed visualization of t
 //
-print: @visible (t: meta::type_declaration) =
+print: @dll_visible (t: meta::type_declaration) =
 {
     std::cout << t.print() << "\n";
 }
@@ -1398,17 +1398,17 @@ print: @visible (t: meta::type_declaration) =
 
 //-----------------------------------------------------------------------
 //
-//  visible - makes t visible in a DLL
+//  dll_visible - makes t visible in a DLL
 //
-visible: @visible (inout t: meta::type_declaration) =
+dll_visible: @dll_visible (inout t: meta::type_declaration) =
 {
-    t.require( t.make_visible(),
-               "visible can only be applied to a namespace-scope name");
+    t.require( t.make_dll_visible(),
+               "dll_visible can only be applied to a namespace-scope name");
 }
-visible: @visible (inout t: meta::function_declaration) =
+dll_visible: @dll_visible (inout t: meta::function_declaration) =
 {
-    t.require( t.make_visible(),
-               "visible can only be applied to a namespace-scope name");
+    t.require( t.make_dll_visible(),
+               "dll_visible can only be applied to a namespace-scope name");
 }
 
 

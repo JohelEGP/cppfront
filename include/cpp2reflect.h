@@ -217,7 +217,7 @@ public: compiler_services(compiler_services const& that);
 
 //  All type_ids are wrappers around a pointer to node
 //
-type_id: @visible @polymorphic_base @copyable type =
+type_id: @dll_visible @polymorphic_base @copyable type =
 {
     this: compiler_services = ();
 
@@ -328,8 +328,8 @@ class CPPFRONTAPI declaration
     public: [[nodiscard]] auto make_protected() & -> bool;
     public: [[nodiscard]] auto make_private() & -> bool;
 
-    public: [[nodiscard]] auto is_visible() const& -> bool;
-    public: [[nodiscard]] auto make_visible() & -> bool;
+    public: [[nodiscard]] auto is_dll_visible() const& -> bool;
+    public: [[nodiscard]] auto make_dll_visible() & -> bool;
 
     public: [[nodiscard]] auto has_name() const& -> bool;
     public: [[nodiscard]] auto has_name(cpp2::in<std::string_view> s) const& -> bool;
@@ -818,12 +818,12 @@ CPPFRONTAPI auto print(cpp2::in<meta::type_declaration> t) -> void;
 #line 1399 "reflect.h2"
 //-----------------------------------------------------------------------
 //
-//  visible - makes t visible in a DLL
+//  dll_visible - makes t visible in a DLL
 //
-CPPFRONTAPI auto visible(meta::type_declaration& t) -> void;
+CPPFRONTAPI auto dll_visible(meta::type_declaration& t) -> void;
 
 #line 1408 "reflect.h2"
-CPPFRONTAPI auto visible(meta::function_declaration& t) -> void;
+CPPFRONTAPI auto dll_visible(meta::function_declaration& t) -> void;
 
 #line 1415 "reflect.h2"
 }
