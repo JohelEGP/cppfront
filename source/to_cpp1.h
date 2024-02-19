@@ -1017,8 +1017,8 @@ class cppfront
     std::vector<error_entry> errors;
 
     struct metafunction_symbol {
-        meta::dll_symbol name;
-        std::string definition;
+        std::string fully_qualified_name;
+        bool is_const; // FIXME: Could be passing-style directly instead.
     };
     std::vector<metafunction_symbol> metafunction_symbols;
 
@@ -1472,12 +1472,7 @@ public:
 
         //  If there is Cpp2 code, we have more to do...
 
-        //  First, emit metafunction symbols in the global namespace
-        for (auto const& mf: metafunction_symbols) {
-            printer.print_extra(mf.definition);
-        }
-
-        //  Then, if this is a .h2 and in a -pure-cpp2 compilation,
+        //  If this is a .h2 and in a -pure-cpp2 compilation,
         //  we need to switch filenames
         if (
             cpp1_filename.back() == 'h'
@@ -1547,30 +1542,16 @@ public:
         {
             assert(source.has_cpp2());
 
-            auto symbols_accessor = std::string{meta::this_execution::symbols_accessor().view()};
-            auto decl = std::string{};
-            decl += "std::type_identity_t<char const**> "
-                  + symbols_accessor
-                  + "_() {\n";
-            decl += "    static char const* res[] = {\n";
-            auto prefix = "        \"";
-            auto suffix = std::string{"\"\n"};
+            printer.print_extra("namespace { // Metafunctions registry\n");
+            int reg_count = 0;
             for (auto const& mf: metafunction_symbols) {
-                decl += prefix + (mf.name.view() + suffix);
-                prefix = "        , \"";
+                auto reg = std::string{"cpp2::meta::register_function "};
+                reg += "rf" + std::to_string(++reg_count) + "(";
+                reg += "\"" + mf.fully_qualified_name + "\",";
+                reg += "std::addressof(" + mf.fully_qualified_name + "));\n";
+                printer.print_extra(reg);
             }
-            decl += "        , nullptr\n"; //  Sentinel element
-            decl += "    };\n";
-            decl += "    return res;\n";
-            decl += "}\n";
-            printer.print_extra(decl);
-            printer.print_extra(
-                "CPP2_C_API constexpr auto "
-                + symbols_accessor
-                + " = &"
-                + symbols_accessor
-                + "_;"
-            );
+            printer.print_extra("}\n");
         }
 
         //  Finally, some debug checks
@@ -6321,13 +6302,7 @@ public:
                 //  to be loaded by `cpp2::meta::load_metafunction`
                 if (n.is_metafunction())
                 {
-                    metafunction_symbols.push_back({meta::dll_symbol(n, parser.translation_unit_has_interface()), {}});
-                    metafunction_symbols.back().definition =
-                        std::string{"\nCPP2_C_API constexpr auto "}
-                        + metafunction_symbols.back().name.view()
-                        + " = "
-                        + meta::to_type_metafunction_cast(n.fully_qualified_name(), n.is_const_metafunction())
-                        + ";";
+                    metafunction_symbols.push_back({n.fully_qualified_name(), n.is_const_metafunction()});
                 }
 
                 //  Note: Not just early "return;" here because we may need

@@ -75,18 +75,19 @@ auto lookup_metafunction(
 
     //  Lookup the name
     auto libraries = meta::this_execution::get_reachable_metafunction_symbols();
+    auto qualified_name = (name.starts_with("::") ? "" : "::") + name;
     auto mangled_name = meta::mangle((name.starts_with("::") ? "" : "::") + name);
     for (auto const& scope : scopes)
     {
         auto expected_symbol = scope.fully_qualified_mangled_name + mangled_name;
         //  FIXME #470 or emit using statement only in
         //  Phase 2 "Cpp2 type definitions and function declarations"
-        if (auto lookup = source_order_name_lookup(scope.names(), name)) {
-            if (auto using_ = get_if<active_using_declaration>(&*lookup)) {
-                //  TODO Handle relative qualified-id
-                expected_symbol = meta::mangle((name.starts_with("::") ? "" : "::") + using_->to_string());
-            }
-        }
+        // if (auto lookup = source_order_name_lookup(scope.names(), name)) {
+        //     if (auto using_ = get_if<active_using_declaration>(&*lookup)) {
+        //         //  TODO Handle relative qualified-id
+        //         expected_symbol = meta::mangle((name.starts_with("::") ? "" : "::") + using_->to_string());
+        //     }
+        // }
 
         //  Save a const overload
         auto res = meta::lookup_res{};
@@ -94,13 +95,11 @@ auto lookup_metafunction(
         {
             for (auto&& sym: lib.symbols)
             {
-                if (sym.without_prefix() == expected_symbol)
+                if (sym.fully_qualified_name == qualified_name)
                 {
                     res = {lib.name, &sym};
                     //  Immediately return a non-const overload
-                    if (!sym.is_const_metafunction()) {
-                        return res;
-                    }
+                    return res;
                 }
             }
         }
@@ -138,22 +137,22 @@ auto parser::apply_type_metafunctions( declaration_node& n )
             auto res = lookup_metafunction(name, current_declarations, current_names);
 
             //  Save sanity check to ensure the Cpp1 lookup matches ours
-            if (
-                res.is_value()
-                && res.value().symbol->is_reachable()
-                )
-            {
-                auto check = std::string{};
-                check += "static_assert(";
-                check += meta::to_type_metafunction_cast(name, res.value().symbol->is_const_metafunction());
-                check += " == ";
-                check += res.value().symbol->view();
-                check += ", ";
-                check += "\"the metafunction name '" + name + "' must be ";
-                check += "reachable and equal to the one evaluated by cppfront\"";
-                check += ");\n";
-                n.metafunction_lookup_checks.push_back(check);
-            }
+            // if (
+            //     res.is_value()
+            //     && res.value().symbol->is_reachable()
+            //     )
+            // {
+            //     auto check = std::string{};
+            //     check += "static_assert(";
+            //     check += meta::to_type_metafunction_cast(name, res.value().symbol->is_const_metafunction());
+            //     check += " == ";
+            //     check += res.value().symbol->view();
+            //     check += ", ";
+            //     check += "\"the metafunction name '" + name + "' must be ";
+            //     check += "reachable and equal to the one evaluated by cppfront\"";
+            //     check += ");\n";
+            //     n.metafunction_lookup_checks.push_back(check);
+            // }
 
             return res;
         }

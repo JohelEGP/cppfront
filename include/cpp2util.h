@@ -397,8 +397,8 @@ struct String
 #define CPP2_MESSAGE_PARAM  char const*
 #define CPP2_CONTRACT_MSG   cpp2::message_to_cstr_adapter
 
-auto message_to_cstr_adapter( CPP2_MESSAGE_PARAM msg ) -> CPP2_MESSAGE_PARAM { return msg ? msg : ""; }
-auto message_to_cstr_adapter( std::string const& msg ) -> CPP2_MESSAGE_PARAM { return msg.c_str(); }
+inline auto message_to_cstr_adapter( CPP2_MESSAGE_PARAM msg ) -> CPP2_MESSAGE_PARAM { return msg ? msg : ""; }
+inline auto message_to_cstr_adapter( std::string const& msg ) -> CPP2_MESSAGE_PARAM { return msg.c_str(); }
 
 class contract_group {
 public:
@@ -2013,6 +2013,32 @@ using cpp2::cpp2_new;
 #endif
 
 #include "cpp2reflect.h"
+
+// FIXME: Should be moved to somewhere inside `cpp2reflect.h` but idk how yet.
+namespace cpp2::meta {
+
+using mf_signature_in = void(cpp2::in<type_declaration>);
+using mf_signature_inout = void(type_declaration&);
+
+struct register_function {
+	register_function(const char* name, mf_signature_in* f);
+	register_function(const char* name, mf_signature_inout* f);
+	~register_function(); // TODO: Remove, used for testing.
+};
+
+// FIXME: These are *internal* to cppfront, and should never be exposed to users.
+using mf = std::variant<mf_signature_in*, mf_signature_inout*>;
+
+struct record
+{
+	std::string fully_qualified_name;
+	mf function;
+	// TODO: Extra info to give better diagnostics to the user?
+	// std::string where_its_defined;
+	// int line, column;
+};
+
+}
 
 #ifdef _MSC_VER
 #pragma warning(pop)
