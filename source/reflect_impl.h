@@ -19,35 +19,28 @@ namespace meta {
 class dll_symbol;
     
 
-#line 110 "reflect_impl.h2"
-namespace this_execution
- {
-
-#line 126 "reflect_impl.h2"
-}
-
-#line 133 "reflect_impl.h2"
+#line 115 "reflect_impl.h2"
 class diagnostic;
     
 
-#line 137 "reflect_impl.h2"
+#line 119 "reflect_impl.h2"
 template<typename T> class expected;
     
 
-#line 154 "reflect_impl.h2"
+#line 136 "reflect_impl.h2"
 }
 
 }
 
-#line 410 "reflect_impl.h2"
+#line 397 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 422 "reflect_impl.h2"
+#line 409 "reflect_impl.h2"
 class compiler_services_data;
 
-#line 635 "reflect_impl.h2"
+#line 622 "reflect_impl.h2"
 }
 
 }
@@ -134,20 +127,9 @@ public: auto operator=(dll_symbol&& that) noexcept -> dll_symbol& ;
 #line 104 "reflect_impl.h2"
 };
 
-[[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> dll_symbol;
-
-#line 110 "reflect_impl.h2"
-namespace this_execution
- {
-
-//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
-//  is read and interpreted as the Cpp2 metafunction library path of this execution
 [[nodiscard]] auto symbols_accessor() -> dll_symbol;
 
-#line 126 "reflect_impl.h2"
-}
-
-#line 129 "reflect_impl.h2"
+#line 111 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  expected with diagnostic to return to apply_metafunctions
@@ -158,12 +140,12 @@ class diagnostic {
 
 template<typename T> class expected {
 
-#line 141 "reflect_impl.h2"
+#line 123 "reflect_impl.h2"
     public: expected(T const& v);
-#line 141 "reflect_impl.h2"
+#line 123 "reflect_impl.h2"
     public: auto operator=(T const& v) -> expected& ;
     public: expected(cpp2::in<diagnostic> u);
-#line 142 "reflect_impl.h2"
+#line 124 "reflect_impl.h2"
     public: auto operator=(cpp2::in<diagnostic> u) -> expected& ;
 
     public: template<typename F> [[nodiscard]] auto and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>;
@@ -186,7 +168,7 @@ public: expected(expected&& that) noexcept;
 public: auto operator=(expected const& that) -> expected& ;
 public: auto operator=(expected&& that) noexcept -> expected& ;
 
-#line 152 "reflect_impl.h2"
+#line 134 "reflect_impl.h2"
 };
 
 }
@@ -342,7 +324,7 @@ private:
 struct library
 {
     std::string_view name;
-    std::vector<dll_symbol> symbols;
+    std::vector<::cpp2::meta::record> symbols;
 };
 
 namespace this_execution {
@@ -376,20 +358,23 @@ std::span<library> get_reachable_metafunction_symbols()
             auto lib_path = cpp1_libraries.substr(0, colon);
             cpp1_libraries.remove_prefix(lib_path.size() + unsigned(colon != lib_path.npos));
 
+            // TODO: Ask Johel why are DLLs now loaded into perpetuity?
             auto lib = dll{std::string{lib_path}};
 
-            auto get_symbols = lib.get_alias<char const**()>(meta::symbols_accessor(lib_path).c_str());
+            auto get_symbols = lib.get_alias<void*(size_t*)>("cpp2_meta_registry");
+
+            size_t registry_size;
+            auto* registry_data = static_cast<::cpp2::meta::record*>(get_symbols(&registry_size));
 
             res.push_back({lib_path, {}});
-            auto c_strings = get_symbols();
-            if (!c_strings || !*c_strings) {
+            if (registry_size == 0) {
                 Default.report_violation(
                     ("symbols accesor returns no symbols (in '" + std::string{lib_path} + "')").c_str()
                 );
             }
 
-            for (; *c_strings; ++c_strings) {
-                auto symbol = res.back().symbols.emplace_back(*c_strings);
+            for (size_t i = 0; i < registry_size; i++) {
+                auto symbol = res.back().symbols.emplace_back(registry_data[i]);
             }
         }
 
@@ -408,7 +393,7 @@ std::span<library> get_reachable_metafunction_symbols()
 //
 struct lookup_res {
     std::string_view library;
-    dll_symbol const* symbol;
+    ::cpp2::meta::record const* symbol;
 };
 
 using load_metafunction_ret = std::function<void(type_declaration&)>;
@@ -424,12 +409,14 @@ auto load_metafunction(
         [](lookup_res res)
             -> expected<load_metafunction_ret>
         {
-            auto [lib_path, cpp1_name] = res;
+            auto [lib_path, record] = res;
 
+            // TODO: Ask Johel why the double load if we never unload?
             auto lib = dll{std::string(lib_path)};
+            assert(record->function.index() == 1);
             return load_metafunction_ret{
                 [
-                 fun = lib.get_alias<void(type_declaration&)>(cpp1_name->c_str()),
+                 fun = std::get<1>(record->function),
                  lib = std::move(lib)
                  ]
                 (type_declaration& t)
@@ -444,12 +431,12 @@ auto load_metafunction(
 
 }
 
-#line 410 "reflect_impl.h2"
+#line 397 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 415 "reflect_impl.h2"
+#line 402 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  Compiler services data
@@ -477,10 +464,10 @@ class compiler_services_data
         cpp2::in<bool> translation_unit_has_interface
     ) -> compiler_services_data;
 
-#line 448 "reflect_impl.h2"
+#line 435 "reflect_impl.h2"
 };
 
-#line 451 "reflect_impl.h2"
+#line 438 "reflect_impl.h2"
 //-----------------------------------------------------------------------
 //
 //  apply_metafunctions
@@ -492,14 +479,14 @@ class compiler_services_data
     auto const& lookup
     ) -> bool;
 
-#line 569 "reflect_impl.h2"
+#line 556 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
     auto const& error
     ) -> bool;
 
-#line 635 "reflect_impl.h2"
+#line 622 "reflect_impl.h2"
 }
 
 }
@@ -610,43 +597,26 @@ auto dll_symbol::operator=(dll_symbol&& that) noexcept -> dll_symbol& {
                                 value = std::move(that).value;
                                 return *this;}
 #line 106 "reflect_impl.h2"
-[[nodiscard]] auto symbols_accessor(cpp2::in<std::string_view> lib_path) -> dll_symbol { 
+[[nodiscard]] auto symbols_accessor() -> dll_symbol { 
 
-    return dll_symbol("get_symbol_names_" + cpp2::to_string(to_lower_and_collapsed_underbar(lib_path, true, true)));  }
+    return dll_symbol("get_symbol_names");  }
 
-namespace this_execution
- {
-
-#line 115 "reflect_impl.h2"
-[[nodiscard]] auto symbols_accessor() -> dll_symbol
-
-{
-    auto constexpr env_var = "CPPFRONT_METAFUNCTION_LIBRARY";
-    auto lib_path {std::getenv(env_var)}; 
-    if (cpp2::Default.has_handler() && !(lib_path && CPP2_ASSERT_IN_BOUNDS(lib_path, 0) != '\0') ) { cpp2::Default.report_violation(CPP2_CONTRACT_MSG(cpp2::to_string(env_var) + " should be set for a Cpp2 source with metafunctions")); }
-    // FIXME Doesn't work for a library with more than one source providing a metafunction
-    // See https://github.com/hsutter/cppfront/pull/907#issuecomment-1872644205
-    return meta::symbols_accessor(std::move(lib_path)); 
-}
-
-}
-
-#line 141 "reflect_impl.h2"
+#line 123 "reflect_impl.h2"
     template <typename T> expected<T>::expected(T const& v) { set_value(v);  }
-#line 141 "reflect_impl.h2"
+#line 123 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(T const& v) -> expected&  { 
                                            _storage = {};
                                            _discriminator = -1; set_value(v);
                                            return *this;  }
-#line 142 "reflect_impl.h2"
+#line 124 "reflect_impl.h2"
     template <typename T> expected<T>::expected(cpp2::in<diagnostic> u) { set_error(u);  }
-#line 142 "reflect_impl.h2"
+#line 124 "reflect_impl.h2"
     template <typename T> auto expected<T>::operator=(cpp2::in<diagnostic> u) -> expected&  { 
                                                     _storage = {};
                                                     _discriminator = -1; set_error(u);
                                                     return *this;  }
 
-#line 144 "reflect_impl.h2"
+#line 126 "reflect_impl.h2"
     template <typename T> template<typename F> [[nodiscard]] auto expected<T>::and_then(F const& f) && -> std::remove_cvref_t<std::invoke_result_t<F,T>>{
         if (is_value()) {
             return f(value()); 
@@ -706,17 +676,17 @@ template <typename T> expected<T>::expected(expected const& that)
     if (CPP2_UFCS(is_error)(std::move(that))) {set_error(CPP2_UFCS(error)(std::move(that)));}
         return *this;
     }
-#line 154 "reflect_impl.h2"
+#line 136 "reflect_impl.h2"
 }
 
 }
 
-#line 410 "reflect_impl.h2"
+#line 397 "reflect_impl.h2"
 namespace cpp2 {
 
 namespace meta {
 
-#line 436 "reflect_impl.h2"
+#line 423 "reflect_impl.h2"
     [[nodiscard]] auto compiler_services_data::make(
         std::vector<error_entry>* errors_, 
         std::deque<token>* generated_tokens_, 
@@ -730,7 +700,7 @@ namespace meta {
                 cpp2::parser(*cpp2::assert_not_null(errors_), translation_unit_has_interface) }; 
     }
 
-#line 455 "reflect_impl.h2"
+#line 442 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     type_declaration& rtype, 
@@ -819,7 +789,7 @@ namespace meta {
 {
 auto const& load = load_metafunction(name, lookup);
 
-#line 541 "reflect_impl.h2"
+#line 528 "reflect_impl.h2"
             if (CPP2_UFCS(is_value)(load)) {
                 CPP2_UFCS(value)(load)(rtype);
             }else {
@@ -833,7 +803,7 @@ auto const& load = load_metafunction(name, lookup);
                 return false; 
             }
 }
-#line 553 "reflect_impl.h2"
+#line 540 "reflect_impl.h2"
         }}}}}}}}}}}}}}}}
 
         if ((
@@ -849,7 +819,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 569 "reflect_impl.h2"
+#line 556 "reflect_impl.h2"
 [[nodiscard]] auto apply_metafunctions(
     declaration_node& n, 
     function_declaration& rfunction, 
@@ -915,7 +885,7 @@ auto const& load = load_metafunction(name, lookup);
     return true; 
 }
 
-#line 635 "reflect_impl.h2"
+#line 622 "reflect_impl.h2"
 }
 
 }

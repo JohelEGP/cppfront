@@ -103,27 +103,9 @@ dll_symbol: @value type = {
                                          .starts_with(const_metafunction_mangle);
 }
 
-symbols_accessor: (lib_path: std::string_view)
-    -> dll_symbol
-    = dll_symbol("get_symbol_names_(to_lower_and_collapsed_underbar(lib_path, true, true))$");
-
-this_execution: namespace =
-{
-
-//  The environment variable 'CPPFRONT_METAFUNCTION_LIBRARY'
-//  is read and interpreted as the Cpp2 metafunction library path of this execution
 symbols_accessor: ()
     -> dll_symbol
-= {
-    env_var :== "CPPFRONT_METAFUNCTION_LIBRARY";
-    lib_path := std::getenv(env_var);
-    assert(lib_path && lib_path[0] != '\0', "(env_var)$ should be set for a Cpp2 source with metafunctions");
-    // FIXME Doesn't work for a library with more than one source providing a metafunction
-    // See https://github.com/hsutter/cppfront/pull/907#issuecomment-1872644205
-    return meta::symbols_accessor(lib_path);
-}
-
-}
+    = dll_symbol("get_symbol_names");
 
 
 //-----------------------------------------------------------------------
@@ -304,7 +286,7 @@ private:
 struct library
 {
     std::string_view name;
-    std::vector<dll_symbol> symbols;
+    std::vector<::cpp2::meta::record> symbols;
 };
 
 namespace this_execution {
@@ -338,20 +320,23 @@ std::span<library> get_reachable_metafunction_symbols()
             auto lib_path = cpp1_libraries.substr(0, colon);
             cpp1_libraries.remove_prefix(lib_path.size() + unsigned(colon != lib_path.npos));
 
+            // TODO: Ask Johel why are DLLs now loaded into perpetuity?
             auto lib = dll{std::string{lib_path}};
 
-            auto get_symbols = lib.get_alias<char const**()>(meta::symbols_accessor(lib_path).c_str());
+            auto get_symbols = lib.get_alias<void*(size_t*)>("cpp2_meta_registry");
+
+            size_t registry_size;
+            auto* registry_data = static_cast<::cpp2::meta::record*>(get_symbols(&registry_size));
 
             res.push_back({lib_path, {}});
-            auto c_strings = get_symbols();
-            if (!c_strings || !*c_strings) {
+            if (registry_size == 0) {
                 Default.report_violation(
                     ("symbols accesor returns no symbols (in '" + std::string{lib_path} + "')").c_str()
                 );
             }
 
-            for (; *c_strings; ++c_strings) {
-                auto symbol = res.back().symbols.emplace_back(*c_strings);
+            for (size_t i = 0; i < registry_size; i++) {
+                auto symbol = res.back().symbols.emplace_back(registry_data[i]);
             }
         }
 
@@ -370,7 +355,7 @@ std::span<library> get_reachable_metafunction_symbols()
 //
 struct lookup_res {
     std::string_view library;
-    dll_symbol const* symbol;
+    ::cpp2::meta::record const* symbol;
 };
 
 using load_metafunction_ret = std::function<void(type_declaration&)>;
@@ -386,12 +371,14 @@ auto load_metafunction(
         [](lookup_res res)
             -> expected<load_metafunction_ret>
         {
-            auto [lib_path, cpp1_name] = res;
+            auto [lib_path, record] = res;
 
+            // TODO: Ask Johel why the double load if we never unload?
             auto lib = dll{std::string(lib_path)};
+            assert(record->function.index() == 1);
             return load_metafunction_ret{
                 [
-                 fun = lib.get_alias<void(type_declaration&)>(cpp1_name->c_str()),
+                 fun = std::get<1>(record->function),
                  lib = std::move(lib)
                  ]
                 (type_declaration& t)
